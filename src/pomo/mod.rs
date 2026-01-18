@@ -1,7 +1,7 @@
 pub mod state;
 pub mod ui;
 
-use crate::pomo::state::{Pomo, AppScreen, InputMode, Task};
+use crate::pomo::state::{Pomo, AppScreen, InputMode, Task, SessionMode};
 use crossterm::{
     event::{self, Event, KeyCode},
     execute,
@@ -48,7 +48,27 @@ impl Pomo {
     fn handle_key(&mut self, key: event::KeyEvent) {
         match self.input_mode {
             InputMode::Normal => match (self.screen, key.code) {
-                (_, KeyCode::Char('q')) => self.should_quit = true,
+                (AppScreen::Tasks, KeyCode::Char('q')) => self.screen = AppScreen::Timer,
+                (AppScreen::Timer, KeyCode::Char('q')) => self.should_quit = true,
+
+                (AppScreen::Timer, KeyCode::Tab) => {
+                    if !self.is_running {
+                        self.mode = match self.mode {
+                            SessionMode::Work => SessionMode::ShortBreak,
+                            SessionMode::ShortBreak => SessionMode::LongBreak,
+                            SessionMode::LongBreak => SessionMode::Work,
+                        };
+                        self.reset_timer_to_mode();
+                    }
+                }
+
+                (AppScreen::Timer, KeyCode::Char('e')) => {
+                    if !self.is_running {
+                        self.input_mode = InputMode::TimerEdit;
+                        self.input_buffer = (self.time_remaining.as_secs() / 60).to_string();
+                    }
+                }
+
                 (AppScreen::Timer, KeyCode::Char('t')) => self.screen = AppScreen::Tasks,
                 (AppScreen::Timer, KeyCode::Char(' ')) => self.is_running = !self.is_running,
                 (AppScreen::Timer, KeyCode::Char('r')) => self.time_remaining = self.work_time,
@@ -70,8 +90,25 @@ impl Pomo {
             KeyCode::Enter => {
                 if !self.input_buffer.is_empty() {
                     match self.input_mode {
+                        InputMode::TimerEdit => {
+                            if let Ok(mins) = self.input_buffer.parse::<u64>() {
+                                let new_dur = Duration::from_secs(mins * 60);
+                                match self.mode {
+                                    SessionMode::Work => self.work_time = new_dur,
+                                    SessionMode::ShortBreak => self.short_break_time = new_dur,
+                                    SessionMode::LongBreak => self.long_break_time = new_dur,
+                                }
+                                self.time_remaining = new_dur;
+                                self.total_duration = new_dur;
+                            }
+                        }
+
                         InputMode::Insert => self.tasks.push(Task { title: self.input_buffer.clone(), is_done: false }),
-                        InputMode::Edit => if let Some(i) = self.task_state.selected() { self.tasks[i].title = self.input_buffer.clone(); }
+
+                        InputMode::Edit => if let Some(i) = self.task_state.selected() { 
+                            self.tasks[i].title = self.input_buffer.clone(); 
+                        }
+
                         _ => {}
                     }
                 }

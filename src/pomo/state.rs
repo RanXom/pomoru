@@ -8,7 +8,7 @@ pub enum SessionMode { Work, ShortBreak, LongBreak }
 pub enum AppScreen { Timer, Tasks }
 
 #[derive(PartialEq, Clone, Copy)]
-pub enum InputMode { Normal, Insert, Edit }
+pub enum InputMode { Normal, Insert, Edit, TimerEdit }
 
 pub struct Task {
     pub title: String,
@@ -84,9 +84,12 @@ impl Pomo {
         }
     }
 
-    pub fn get_progress(&self) -> f64 {
-        if self.total_duration.as_secs() == 0 { return 0.0; }
-        let elapsed = self.total_duration.as_secs_f64() - self.time_remaining.as_secs_f64();
-        (elapsed / self.total_duration.as_secs_f64()).clamp(0.0, 1.0)
+    pub fn reset_timer_to_mode(&mut self) {
+        self.time_remaining = match self.mode {
+            SessionMode::Work => self.work_time,
+            SessionMode::ShortBreak => self.short_break_time,
+            SessionMode::LongBreak => self.long_break_time,
+        };
+        self.total_duration = self.time_remaining;
     }
 }

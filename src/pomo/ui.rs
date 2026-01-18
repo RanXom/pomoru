@@ -25,7 +25,7 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
         AppScreen::Tasks => render_task_screen(f, app),
     }
  
-    if let InputMode::Insert | InputMode::Edit = app.input_mode {
+    if let InputMode::Insert | InputMode::Edit | InputMode::TimerEdit = app.input_mode {
         render_input_modal(f, app);
     }
 }
@@ -65,7 +65,7 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
 
     render_session_dots(f, app, chunks[4]);
 
-    let footer = "↑ +1 min  •  space pause  •  r reset  •  s skip  •  t tasks";
+    let footer = "tab session • e edit time • space pause • r reset • q quit";
     f.render_widget(
         Paragraph::new(footer).alignment(Alignment::Center).style(Style::default().fg(MOCHA_OVERLAY0)), 
         chunks[6]
@@ -158,8 +158,9 @@ pub fn render_input_modal(f: &mut Frame, app: &Pomo) {
     f.render_widget(Clear, area); 
 
     let title = match app.input_mode { 
-        InputMode::Insert => " New Task ", 
-        InputMode::Edit => " Edit Task ", 
+        InputMode::Insert => " New Task ",
+        InputMode::Edit => " Edit Task ",
+        InputMode::TimerEdit => " Set Minutes ",
         _ => " Input " 
     };
 
