@@ -23,12 +23,13 @@ pub struct Pomo {
     pub short_break_time: Duration,
     pub long_break_time: Duration,
     pub time_remaining: Duration,
+    pub total_duration: Duration,
     pub is_running: bool,
     pub break_count: u32,
     pub tasks: Vec<Task>,
     pub task_state: ListState,
     pub input_buffer: String,
-    pub should_quit: bool,
+    pub should_quit: bool
 }
 
 impl Pomo {
@@ -42,12 +43,13 @@ impl Pomo {
             short_break_time: Duration::from_secs(5 * 60),
             long_break_time: Duration::from_secs(15 * 60),
             time_remaining: work,
+            total_duration: work,
             is_running: false,
             break_count: 0,
             tasks: Vec::new(),
             task_state: ListState::default(),
             input_buffer: String::new(),
-            should_quit: false,
+            should_quit: false
         }
     }
 
@@ -67,22 +69,24 @@ impl Pomo {
                 if self.break_count % 4 == 0 {
                     self.mode = SessionMode::LongBreak;
                     self.time_remaining = self.long_break_time;
+                    self.total_duration = self.long_break_time;
                 } else {
                     self.mode = SessionMode::ShortBreak;
                     self.time_remaining = self.short_break_time;
+                    self.total_duration = self.short_break_time;
                 }
             }
             _ => {
                 self.mode = SessionMode::Work;
                 self.time_remaining = self.work_time;
+                self.total_duration = self.work_time;
             }
         }
     }
 
-    pub fn get_commands(&self) -> Vec<(&'static str, &'static str)> {
-        match self.screen {
-            AppScreen::Timer => vec![("Space", "Start"), ("t", "Tasks"), ("r", "Reset"), ("q", "Quit")],
-            AppScreen::Tasks => vec![("t/Esc", "Back"), ("i", "New"), ("e", "Edit"), ("d", "Delete")],
-        }
+    pub fn get_progress(&self) -> f64 {
+        if self.total_duration.as_secs() == 0 { return 0.0; }
+        let elapsed = self.total_duration.as_secs_f64() - self.time_remaining.as_secs_f64();
+        (elapsed / self.total_duration.as_secs_f64()).clamp(0.0, 1.0)
     }
 }

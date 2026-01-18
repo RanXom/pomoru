@@ -28,8 +28,10 @@ impl Pomo {
                 _ = second_tick.tick() => {
                     self.tick();
                 }
-                event_res = tokio::task::spawn_blocking(|| event::poll(Duration::from_millis(50))) => {
-                    if let Ok(Ok(true)) = event_res { // Fixed the mismatched type error
+ 
+                // Tighten poll to 16ms (~60fps feel) for input responsiveness
+                event_res = tokio::task::spawn_blocking(|| event::poll(Duration::from_millis(16))) => {
+                    if let Ok(Ok(true)) = event_res {
                         if let Ok(Event::Key(key)) = event::read() {
                             self.handle_key(key);
                         }
