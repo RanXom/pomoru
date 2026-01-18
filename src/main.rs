@@ -1,3 +1,7 @@
+mod pomo;
+use pomo::Pomo;
+
 fn main() {
-    println!("Hello, world!");
+    let mut app = Pomo::new();
+    app.run();
 }
