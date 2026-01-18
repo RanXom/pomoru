@@ -23,7 +23,7 @@ A minimalist Pomodoro TUI with a task list, written in Rust.
 ### Design
 
 * Keyboard-only interaction
-* Minimalist interface (Catppuccin Mocha Themed)
+* Minimalist interface (Catppuccin Mocha themed)
 * Configuration saved locally
 
 ---
@@ -71,7 +71,7 @@ Config file location:
 
 ```text
 ~/.config/pomoru/config.toml
-```
+````
 
 Saved data includes:
 
@@ -94,6 +94,12 @@ is_done = false
 
 ## Installation
 
+### Arch Linux (AUR)
+
+```bash
+yay -S pomoru
+```
+
 ### Build from source
 
 ```bash
@@ -102,7 +108,7 @@ cd pomoru
 cargo run --release
 ```
 
-To install the binary:
+To install the binary locally:
 
 ```bash
 cargo install --path .
