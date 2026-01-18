@@ -1,6 +1,7 @@
 use ratatui::widgets::ListState;
 use std::time::Duration;
 use serde::{ Serialize, Deserialize };
+use notify_rust::Notification;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum SessionMode { Work, ShortBreak, LongBreak }
@@ -67,8 +68,20 @@ impl Pomo {
         if self.is_running && self.time_remaining.as_secs() > 0 {
             self.time_remaining -= Duration::from_secs(1);
         } else if self.is_running && self.time_remaining.as_secs() == 0 {
-            self.is_running = false;
+            let (title, msg) = match self.mode {
+                SessionMode::Work => (
+                    "Focus Block Complete",
+                    "I'm tired, boss."
+                ),
+                _ => (
+                    "Break Over",
+                    "Ah shit, here we go again."
+                ),
+            };
+
+            self.send_notification(title, msg);
             self.transition_next_session();
+            self.is_running = true;
         }
     }
 
@@ -76,7 +89,7 @@ impl Pomo {
         match self.mode {
             SessionMode::Work => {
                 self.break_count += 1;
-                if self.break_count % 4 == 0 {
+                if self.break_count % 3 == 0 {
                     self.mode = SessionMode::LongBreak;
                     self.time_remaining = self.long_break_time;
                     self.total_duration = self.long_break_time;
@@ -101,5 +114,14 @@ impl Pomo {
             SessionMode::LongBreak => self.long_break_time,
         };
         self.total_duration = self.time_remaining;
+    }
+
+    pub fn send_notification(&self, title: &str, message: &str) {
+        let _ = Notification::new()
+            .summary(title)
+            .body(message)
+            .appname("pomoru")
+            .timeout(5000)
+            .show();
     }
 }

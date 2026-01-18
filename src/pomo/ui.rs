@@ -80,7 +80,7 @@ fn format_monolithic_ascii(time: &str) -> Text<'static> {
             '0' => vec![" ██████ ", "██    ██", "██    ██", "██    ██", " ██████ "],
             '1' => vec!["   ██   ", "  ███   ", "   ██   ", "   ██   ", " ██████ "],
             '2' => vec![" ██████ ", "██    ██", "    ███ ", "  ███   ", "████████"],
-            '3' => vec![" ██████ ", "██    ██", "  █████ ", "██    ██", " ██████ "],
+            '3' => vec![" ██████ ", "      ██", "  █████ ", "      ██", " ██████ "],
             '4' => vec!["██    ██", "██    ██", "████████", "      ██", "      ██"],
             '5' => vec!["████████", "██      ", "███████ ", "      ██", "███████ "],
             '6' => vec![" ██████ ", "██      ", "███████ ", "██    ██", " ██████ "],
@@ -99,7 +99,7 @@ fn format_monolithic_ascii(time: &str) -> Text<'static> {
 }
 
 fn render_session_dots(f: &mut Frame, app: &Pomo, area: Rect) {
-    let modes = [(SessionMode::Work, "focus"), (SessionMode::ShortBreak, "shortbreak"), (SessionMode::LongBreak, "longbreak")];
+    let modes = [(SessionMode::Work, "Focus"), (SessionMode::ShortBreak, "Short Break"), (SessionMode::LongBreak, "Long Break")];
     let spans = modes.iter().enumerate().map(|(i, (mode, label))| {
         let is_active = app.mode == *mode;
         let color = if is_active { MOCHA_LAVENDER } else { MOCHA_OVERLAY0 };
