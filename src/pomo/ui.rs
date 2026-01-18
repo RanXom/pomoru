@@ -16,7 +16,7 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Fill(1),
-                    Constraint::Length(16),
+                    Constraint::Length(18),
                     Constraint::Fill(1),
                 ])
                 .split(f.area());
@@ -24,7 +24,7 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
         }
         AppScreen::Tasks => render_task_screen(f, app),
     }
-
+ 
     if let InputMode::Insert | InputMode::Edit = app.input_mode {
         render_input_modal(f, app);
     }
@@ -34,27 +34,28 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // Priority Text
-            Constraint::Length(4), // Large top spacer
-            Constraint::Length(5), // MONOLITHIC TIMER
-            Constraint::Length(3), // Padding
-            Constraint::Length(1), // Session Dots
-            Constraint::Min(1),    // Fill
-            Constraint::Length(1), // Footer Help
+            Constraint::Length(1),
+            Constraint::Length(4),
+            Constraint::Length(5), 
+            Constraint::Length(3), 
+            Constraint::Length(1), 
+            Constraint::Min(1),
+            Constraint::Length(1),
         ])
         .split(area);
 
-    // PRIORITY
     let priority_text = app.tasks.iter().find(|t| !t.is_done)
         .map(|t| format!("Current Focus: {}", t.title))
         .unwrap_or_else(|| "No Active Tasks".to_string());
-    
+ 
     f.render_widget(
-        Paragraph::new(priority_text).alignment(Alignment::Center).style(Style::default().fg(MOCHA_LAVENDER).bold()), 
+        Paragraph::new(priority_text)
+            .alignment(Alignment::Center)
+            .wrap(Wrap { trim: true }) // Added wrapping for the top priority bar
+            .style(Style::default().fg(MOCHA_LAVENDER).bold()), 
         chunks[0]
     );
 
-    // TIMER
     let time_str = format_duration(app.time_remaining);
     let big_text = format_monolithic_ascii(&time_str);
     f.render_widget(
@@ -62,10 +63,8 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
         chunks[2]
     );
 
-    // SESSION INDICATOR
     render_session_dots(f, app, chunks[4]);
 
-    // FOOTER HELP
     let footer = "↑ +1 min  •  space pause  •  r reset  •  s skip  •  t tasks";
     f.render_widget(
         Paragraph::new(footer).alignment(Alignment::Center).style(Style::default().fg(MOCHA_OVERLAY0)), 
@@ -73,23 +72,7 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
     );
 }
 
-fn render_marker(f: &mut Frame, text: &str, active: bool, area: Rect) {
-    let style = if active { 
-        Style::default().fg(MOCHA_LAVENDER).bold() 
-    } else { 
-        Style::default().fg(MOCHA_OVERLAY0) 
-    };
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(style);
-    
-    f.render_widget(
-        Paragraph::new(text).alignment(Alignment::Center).block(block).style(style), 
-        area
-    );
-}
-
+// Fixed-width monolithic ASCII engine
 fn format_monolithic_ascii(time: &str) -> Text<'static> {
     let mut lines = vec![String::new(); 5];
     for (idx, c) in time.chars().enumerate() {
@@ -107,7 +90,6 @@ fn format_monolithic_ascii(time: &str) -> Text<'static> {
             ':' => vec!["   █    ", "        ", "   █    ", "        ", "        "], 
             _   => vec!["        "; 5],
         };
-        
         for i in 0..5 {
             lines[i].push_str(art[i]);
             if idx < time.len() - 1 { lines[i].push_str("  "); }
@@ -132,9 +114,19 @@ fn render_session_dots(f: &mut Frame, app: &Pomo, area: Rect) {
 
 pub fn render_task_screen(f: &mut Frame, app: &mut Pomo) {
     let area = centered_rect(60, 80, f.area());
+
+    // Vertical split to house the task list and the footer helper
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(0),    // Task List takes all available space
+            Constraint::Length(1), // Footer takes exactly one line
+        ])
+        .split(area);
+
     let items: Vec<ListItem> = app.tasks.iter().map(|t| {
         let symbol = if t.is_done { "󰄲" } else { "󰄱" };
-        ListItem::new(format!(" {} {}", symbol, t.title))
+        ListItem::new(Text::from(format!(" {} {}", symbol, t.title)))
     }).collect();
 
     let list = List::new(items)
@@ -142,30 +134,71 @@ pub fn render_task_screen(f: &mut Frame, app: &mut Pomo) {
             .title(" Focus Priorities ")
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
+            .padding(Padding::uniform(1)) 
             .border_style(Style::default().fg(MOCHA_LAVENDER)))
         .highlight_style(Style::default().bg(MOCHA_SURFACE0).fg(MOCHA_TEXT).bold())
         .highlight_symbol(">> ");
-    
-    f.render_stateful_widget(list, area, &mut app.task_state);
+
+    f.render_stateful_widget(list, chunks[0], &mut app.task_state);
+
+    // --- TASK MENU FOOTER ---
+    // i: Insert, Enter: Done/Save, e: Edit, d: Delete
+    let footer_text = "i insert • ⏎ toggle • e edit • d delete • t back";
+    f.render_widget(
+        Paragraph::new(footer_text)
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(MOCHA_OVERLAY0)),
+        chunks[1]
+    );
 }
 
 pub fn render_input_modal(f: &mut Frame, app: &Pomo) {
-    let area = centered_rect(40, 10, f.area());
+    // We use a fixed height of 7 to ensure the "center" feels spacious
+    let area = centered_rect(45, 7, f.area());
     f.render_widget(Clear, area); 
+
     let title = match app.input_mode { 
         InputMode::Insert => " New Task ", 
         InputMode::Edit => " Edit Task ", 
         _ => " Input " 
     };
-    
+
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(MOCHA_LAVENDER));
+
+    // This splits the inside of the box into three: Top Space, The Text, Bottom Space.
+    let inner_area = block.inner(area);
+    let vertical_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Fill(1),   // Top padding (Flexible)
+            Constraint::Length(1), // The actual Input line
+            Constraint::Fill(1),   // Bottom padding (Flexible)
+        ])
+        .split(inner_area);
+
+    let input_len = app.input_buffer.len() as u16;
+    let max_width = vertical_chunks[1].width;
+    let scroll = input_len.saturating_sub(max_width);
+
+    f.render_widget(block, area);
+
     f.render_widget(
         Paragraph::new(app.input_buffer.as_str())
-            .block(Block::default()
-                .title(title)
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(MOCHA_LAVENDER))), 
-        area
+            .scroll((0, scroll))
+            .alignment(Alignment::Left) // Typing starts left but stays vertically centered
+            .style(Style::default().fg(MOCHA_TEXT).bold()), 
+        vertical_chunks[1]
     );
+
+    // Cursor is now mathematically locked to the vertical center (vertical_chunks[1].y)
+    f.set_cursor_position((
+        vertical_chunks[1].x + input_len.min(max_width),
+        vertical_chunks[1].y,
+    ));
 }
 
 // --- UTILITIES ---
