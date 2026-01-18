@@ -1,29 +1,14 @@
 use ratatui::widgets::ListState;
-use ratatui::prelude::Color;
 use std::time::Duration;
 
 #[derive(PartialEq, Clone, Copy)]
-pub enum SessionMode {
-    Work,
-    ShortBreak,
-    LongBreak,
-}
+pub enum SessionMode { Work, ShortBreak, LongBreak }
 
-pub enum InputMode {
-    Normal,
-    Insert,
-    Edit,
-}
+#[derive(PartialEq, Clone, Copy)]
+pub enum AppScreen { Timer, Tasks }
 
-impl SessionMode {
-    pub fn get_color(&self) -> Color {
-        match self {
-            SessionMode::Work => Color::Cyan,
-            SessionMode::ShortBreak => Color::Green,
-            SessionMode::LongBreak => Color::Magenta,
-        }
-    }
-}
+#[derive(PartialEq, Clone, Copy)]
+pub enum InputMode { Normal, Insert, Edit }
 
 pub struct Task {
     pub title: String,
@@ -31,7 +16,9 @@ pub struct Task {
 }
 
 pub struct Pomo {
+    pub screen: AppScreen,
     pub mode: SessionMode,
+    pub input_mode: InputMode,
     pub work_time: Duration,
     pub short_break_time: Duration,
     pub long_break_time: Duration,
@@ -40,26 +27,17 @@ pub struct Pomo {
     pub break_count: u32,
     pub tasks: Vec<Task>,
     pub task_state: ListState,
-    pub input_mode: InputMode,
     pub input_buffer: String,
     pub should_quit: bool,
-    pub show_help: bool
-}
-
-pub struct Command {
-    pub key: &'static str,
-    pub desc: &'static str,
 }
 
 impl Pomo {
     pub fn new() -> Self {
-        let dummy_tasks = vec![
-            Task { title: "Complete Milestone 1".into(), is_done: true },
-            Task { title: "Refactor UI for Flocus look".into(), is_done: false },
-        ];
-
+        let work = Duration::from_secs(25 * 60);
         Self {
+            screen: AppScreen::Timer,
             mode: SessionMode::Work,
+            input_mode: InputMode::Normal,
             work_time: work,
             short_break_time: Duration::from_secs(5 * 60),
             long_break_time: Duration::from_secs(15 * 60),
@@ -68,10 +46,8 @@ impl Pomo {
             break_count: 0,
             tasks: Vec::new(),
             task_state: ListState::default(),
-            input_mode: InputMode::Normal,
             input_buffer: String::new(),
             should_quit: false,
-            show_help: false,
         }
     }
 
@@ -103,51 +79,10 @@ impl Pomo {
         }
     }
 
-    pub fn toggle_timer(&mut self) {
-        self.is_running = !self.is_running;
-    }
-
-    pub fn next_task(&mut self) {
-        let i = match self.task_state.selected() {
-            Some(i) => {
-                if i >= self.tasks.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.task_state.select(Some(i));
-    }
-
-    pub fn previous_task(&mut self) {
-        let i = match self.task_state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.tasks.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.task_state.select(Some(i));
-    }
-
-    pub fn toggle_task(&mut self) {
-        if let Some(i) = self.task_state.selected() {
-            self.tasks[i].is_done = !self.tasks[i].is_done;
+    pub fn get_commands(&self) -> Vec<(&'static str, &'static str)> {
+        match self.screen {
+            AppScreen::Timer => vec![("Space", "Start"), ("t", "Tasks"), ("r", "Reset"), ("q", "Quit")],
+            AppScreen::Tasks => vec![("t/Esc", "Back"), ("i", "New"), ("e", "Edit"), ("d", "Delete")],
         }
-    }
-
-    pub fn get_commands(&self) -> Vec<Command> {
-        vec![
-            Command { key: "Space", desc: "Toggle Timer" },
-            Command { key: "j/k",   desc: "Navigate Tasks" },
-            Command { key: "Enter", desc: "Toggle Done" },
-            Command { key: "?",     desc: "Toggle Help" },
-            Command { key: "q",     desc: "Quit" },
-        ]
     }
 }
