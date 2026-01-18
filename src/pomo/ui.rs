@@ -10,21 +10,41 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
     let main_block = Block::default().style(Style::default().bg(Color::Reset));
     f.render_widget(main_block, f.area());
 
+    let root_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(0),    // App Screen Content
+            Constraint::Length(1), // Absolute Footer
+            Constraint::Length(1), // Bottom Padding Spacer
+        ])
+        .split(f.area());
+
     match app.screen {
         AppScreen::Timer => {
-            let outer_v_chunks = Layout::default()
+            let timer_v_center = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Fill(1),
-                    Constraint::Length(18),
+                    Constraint::Length(15), 
                     Constraint::Fill(1),
                 ])
-                .split(f.area());
-            render_timer_screen(f, app, outer_v_chunks[1]);
+                .split(root_layout[0]);
+
+            render_timer_screen(f, app, timer_v_center[1]);
+
+            let footer = "tab session • e edit time • space pause • r reset • q quit";
+            f.render_widget(
+                Paragraph::new(footer)
+                    .alignment(Alignment::Center)
+                    .style(Style::default().fg(MOCHA_OVERLAY0)),
+                root_layout[1]
+            );
         }
-        AppScreen::Tasks => render_task_screen(f, app),
+        AppScreen::Tasks => {
+            render_task_screen(f, app, root_layout[1]); 
+        }
     }
- 
+    
     if let InputMode::Insert | InputMode::Edit | InputMode::TimerEdit = app.input_mode {
         render_input_modal(f, app);
     }
@@ -34,13 +54,12 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),
-            Constraint::Length(4),
-            Constraint::Length(5), 
-            Constraint::Length(3), 
-            Constraint::Length(1), 
-            Constraint::Min(1),
-            Constraint::Length(1),
+            Constraint::Length(1), // Priority Text
+            Constraint::Length(4), // Spacer
+            Constraint::Length(5), // ASCII Timer
+            Constraint::Length(3), // Spacer
+            Constraint::Length(1), // Session Dots
+            Constraint::Min(0),
         ])
         .split(area);
 
@@ -51,7 +70,6 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
     f.render_widget(
         Paragraph::new(priority_text)
             .alignment(Alignment::Center)
-            .wrap(Wrap { trim: true }) // Added wrapping for the top priority bar
             .style(Style::default().fg(MOCHA_LAVENDER).bold()), 
         chunks[0]
     );
@@ -64,12 +82,6 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
     );
 
     render_session_dots(f, app, chunks[4]);
-
-    let footer = "tab session • e edit time • space pause • r reset • q quit";
-    f.render_widget(
-        Paragraph::new(footer).alignment(Alignment::Center).style(Style::default().fg(MOCHA_OVERLAY0)), 
-        chunks[6]
-    );
 }
 
 // Fixed-width monolithic ASCII engine
@@ -112,17 +124,8 @@ fn render_session_dots(f: &mut Frame, app: &Pomo, area: Rect) {
     f.render_widget(Paragraph::new(Line::from(spans)).alignment(Alignment::Center), area);
 }
 
-pub fn render_task_screen(f: &mut Frame, app: &mut Pomo) {
+pub fn render_task_screen(f: &mut Frame, app: &mut Pomo, footer_area: Rect) {
     let area = centered_rect(60, 80, f.area());
-
-    // Vertical split to house the task list and the footer helper
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(0),    // Task List takes all available space
-            Constraint::Length(1), // Footer takes exactly one line
-        ])
-        .split(area);
 
     let items: Vec<ListItem> = app.tasks.iter().map(|t| {
         let symbol = if t.is_done { "󰄲" } else { "󰄱" };
@@ -139,16 +142,14 @@ pub fn render_task_screen(f: &mut Frame, app: &mut Pomo) {
         .highlight_style(Style::default().bg(MOCHA_SURFACE0).fg(MOCHA_TEXT).bold())
         .highlight_symbol(">> ");
 
-    f.render_stateful_widget(list, chunks[0], &mut app.task_state);
+    f.render_stateful_widget(list, area, &mut app.task_state);
 
-    // --- TASK MENU FOOTER ---
-    // i: Insert, Enter: Done/Save, e: Edit, d: Delete
     let footer_text = "i insert • ⏎ toggle • e edit • d delete • t back";
     f.render_widget(
         Paragraph::new(footer_text)
             .alignment(Alignment::Center)
             .style(Style::default().fg(MOCHA_OVERLAY0)),
-        chunks[1]
+        footer_area
     );
 }
 

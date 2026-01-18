@@ -68,15 +68,25 @@ impl Pomo {
         if self.is_running && self.time_remaining.as_secs() > 0 {
             self.time_remaining -= Duration::from_secs(1);
         } else if self.is_running && self.time_remaining.as_secs() == 0 {
+            let focus_msg = [
+                "I'm tired, boss...",
+                "Congrats! You're him 🗿",
+                "Stand up. Touch grass.",
+                "Mission Passed! Respect+",
+            ];
+            let break_msg = [
+                "Ah shit, here we go again.",
+                "Wake up, Samurai. We have code to burn.",
+                "Lock back in.",
+                "Ref! Do Something! The break's over!",
+            ];
+
+            // Use the remaining duration/break count as a seed for simple 'random' selection
+            let idx = (self.break_count as usize) % 4;
+
             let (title, msg) = match self.mode {
-                SessionMode::Work => (
-                    "Focus Block Complete",
-                    "I'm tired, boss."
-                ),
-                _ => (
-                    "Break Over",
-                    "Ah shit, here we go again."
-                ),
+                SessionMode::Work => ("Focus Block Complete", focus_msg[idx]),
+                _ => ("Break Over", break_msg[idx]),
             };
 
             self.send_notification(title, msg);
