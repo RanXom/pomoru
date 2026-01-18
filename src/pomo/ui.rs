@@ -51,6 +51,33 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
         .highlight_symbol(" ");
 
     f.render_stateful_widget(list, chunks[1], &mut app.task_state);
+
+    if app.show_help {
+        let help_area = centered_rect(30, 30, f.area()); // Smaller popup
+        
+        // Clear the area underneath so the main UI doesn't interfere
+        f.render_widget(Clear, help_area); 
+
+        let help_block = Block::default()
+            .title(" Help / Controls ")
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(accent_color));
+
+        let commands = app.get_commands();
+        let help_text: Vec<ListItem> = commands
+            .iter()
+            .map(|c| {
+                ListItem::new(Line::from(vec![
+                    Span::styled(format!("{:<7}", c.key), Style::default().fg(accent_color).add_modifier(Modifier::BOLD)),
+                    Span::raw(c.desc),
+                ]))
+            })
+            .collect();
+
+        let help_list = List::new(help_text).block(help_block);
+        f.render_widget(help_list, help_area);
+    }
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {

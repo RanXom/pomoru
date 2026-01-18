@@ -31,6 +31,12 @@ pub struct Pomo {
     pub tasks: Vec<Task>,
     pub task_state: ListState,
     pub should_quit: bool,
+    pub show_help: bool
+}
+
+pub struct Command {
+    pub key: &'static str,
+    pub desc: &'static str,
 }
 
 impl Pomo {
@@ -47,6 +53,7 @@ impl Pomo {
             tasks: dummy_tasks,
             task_state: ListState::default(),
             should_quit: false,
+            show_help: false
         }
     }
 
@@ -105,5 +112,15 @@ impl Pomo {
         if let Some(i) = self.task_state.selected() {
             self.tasks[i].is_done = !self.tasks[i].is_done;
         }
+    }
+
+    pub fn get_commands(&self) -> Vec<Command> {
+        vec![
+            Command { key: "Space", desc: "Toggle Timer" },
+            Command { key: "j/k",   desc: "Navigate Tasks" },
+            Command { key: "Enter", desc: "Toggle Done" },
+            Command { key: "?",     desc: "Toggle Help" },
+            Command { key: "q",     desc: "Quit" },
+        ]
     }
 }

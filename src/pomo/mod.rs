@@ -9,7 +9,8 @@ use crossterm::{
 };
 use ratatui::prelude::*;
 use std::io;
-use std::time::{Duration, Instant}; // Fixed: Added Instant here
+use std::time::{Duration, Instant};
+use crossterm::event::KeyModifiers;
 
 impl Pomo {
     pub fn run(&mut self) -> io::Result<()> {
@@ -33,10 +34,18 @@ impl Pomo {
                 if let Event::Key(key) = event::read()? {
                     match key.code {
                         KeyCode::Char('q') => self.should_quit = true,
-                        KeyCode::Char(' ') => self.toggle_timer(),
-                        KeyCode::Char('j') | KeyCode::Down => self.next_task(),
-                        KeyCode::Char('k') | KeyCode::Up => self.previous_task(),
-                        KeyCode::Enter => self.toggle_task(),
+                        KeyCode::Char('?') => self.show_help = !self.show_help,
+                        KeyCode::Char('h') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                            self.show_help = !self.show_help
+                        },
+                        // Only allow other inputs if help isn't showing (to keep it clean)
+                        _ if !self.show_help => match key.code {
+                            KeyCode::Char(' ') => self.toggle_timer(),
+                            KeyCode::Char('j') | KeyCode::Down => self.next_task(),
+                            KeyCode::Char('k') | KeyCode::Up => self.previous_task(),
+                            KeyCode::Enter => self.toggle_task(),
+                            _ => {}
+                        },
                         _ => {}
                     }
                 }
