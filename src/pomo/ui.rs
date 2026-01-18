@@ -13,9 +13,9 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
     let root_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0),    // App Screen Content
-            Constraint::Length(1), // Absolute Footer
-            Constraint::Length(1), // Bottom Padding Spacer
+            Constraint::Min(0),
+            Constraint::Length(1),
+            Constraint::Length(1)
         ])
         .split(f.area());
 
@@ -25,14 +25,14 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Fill(1),
-                    Constraint::Length(15), 
-                    Constraint::Fill(1),
+                    Constraint::Length(15),
+                    Constraint::Fill(1)
                 ])
                 .split(root_layout[0]);
 
             render_timer_screen(f, app, timer_v_center[1]);
 
-            let footer = "tab session • e edit time • space pause • r reset • q quit";
+            let footer = "tab session • t tasks • e edit time • space pause • r reset • q quit";
             f.render_widget(
                 Paragraph::new(footer)
                     .alignment(Alignment::Center)
@@ -44,7 +44,7 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
             render_task_screen(f, app, root_layout[1]); 
         }
     }
-    
+
     if let InputMode::Insert | InputMode::Edit | InputMode::TimerEdit = app.input_mode {
         render_input_modal(f, app);
     }
@@ -154,36 +154,52 @@ pub fn render_task_screen(f: &mut Frame, app: &mut Pomo, footer_area: Rect) {
 }
 
 pub fn render_input_modal(f: &mut Frame, app: &Pomo) {
-    // We use a fixed height of 7 to ensure the "center" feels spacious
-    let area = centered_rect(45, 7, f.area());
-    f.render_widget(Clear, area); 
+    let (title, width) = match app.input_mode { 
+        InputMode::TimerEdit => (" Set Minutes ", 30), 
+        _ => (" Input ", 50), 
+    };
 
-    let title = match app.input_mode { 
+    // Instead of using the utility, we define the area directly to ensure zero drift.
+    let terminal_area = f.area();
+    let modal_width = width.min(terminal_area.width.saturating_sub(4));
+    let modal_height = 5; // Tighter vertical profile
+ 
+    let area = Rect {
+        x: terminal_area.x + (terminal_area.width.saturating_sub(modal_width)) / 2,
+        y: terminal_area.y + (terminal_area.height.saturating_sub(modal_height)) / 2,
+        width: modal_width,
+        height: modal_height,
+    };
+
+    f.render_widget(Clear, area);
+
+    let title_text = match app.input_mode {
         InputMode::Insert => " New Task ",
         InputMode::Edit => " Edit Task ",
         InputMode::TimerEdit => " Set Minutes ",
-        _ => " Input " 
+        _ => title
     };
 
     let block = Block::default()
-        .title(title)
+        .title(Span::styled(title_text, Style::default().fg(MOCHA_LAVENDER).bold()))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(MOCHA_LAVENDER));
 
-    // This splits the inside of the box into three: Top Space, The Text, Bottom Space.
+    // Nested layout for perfect internal vertical centering
     let inner_area = block.inner(area);
     let vertical_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Fill(1),   // Top padding (Flexible)
-            Constraint::Length(1), // The actual Input line
-            Constraint::Fill(1),   // Bottom padding (Flexible)
+            Constraint::Fill(1),
+            Constraint::Length(1),
+            Constraint::Fill(1),
         ])
         .split(inner_area);
 
+    let horizontal_padding = 2;
     let input_len = app.input_buffer.len() as u16;
-    let max_width = vertical_chunks[1].width;
+    let max_width = vertical_chunks[1].width.saturating_sub(horizontal_padding * 2);
     let scroll = input_len.saturating_sub(max_width);
 
     f.render_widget(block, area);
@@ -191,14 +207,13 @@ pub fn render_input_modal(f: &mut Frame, app: &Pomo) {
     f.render_widget(
         Paragraph::new(app.input_buffer.as_str())
             .scroll((0, scroll))
-            .alignment(Alignment::Left) // Typing starts left but stays vertically centered
+            .block(Block::default().padding(Padding::horizontal(horizontal_padding)))
             .style(Style::default().fg(MOCHA_TEXT).bold()), 
         vertical_chunks[1]
     );
 
-    // Cursor is now mathematically locked to the vertical center (vertical_chunks[1].y)
     f.set_cursor_position((
-        vertical_chunks[1].x + input_len.min(max_width),
+        vertical_chunks[1].x + horizontal_padding + input_len.min(max_width),
         vertical_chunks[1].y,
     ));
 }
