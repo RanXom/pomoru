@@ -1,5 +1,10 @@
 /target
 
-TODO.md # personal todo file to keep track of project
-1       # generated on running cargo check > temp 2>&1
-temp    # temp file to store errors and warning that i can later bat temp | wl-copy
+# personal todo file to keep track of project
+TODO.md
+
+# generated on running cargo check > temp 2>&1
+1
+
+# temp file to store errors and warning that i can later bat temp | wl-copy
+temp
