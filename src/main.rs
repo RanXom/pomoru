@@ -1,5 +1,5 @@
 mod pomo;
-use pomo::Pomo;
+use pomo::state::Pomo;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = Pomo::new();
