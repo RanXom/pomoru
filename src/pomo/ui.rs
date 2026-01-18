@@ -2,59 +2,57 @@ use ratatui::{
     prelude::*,
     widgets::*,
 };
-use crate::pomo::state::{Pomo, SessionMode};
+use crate::pomo::state::Pomo;
 
 pub fn render(f: &mut Frame, app: &mut Pomo) {
-    // 1. Create a centered area. 
-    // We use 60% of width and 60% of height for that "isolated" feel.
-    let area = centered_rect(60, 60, f.size());
+    let area = centered_rect(50, 50, f.area());
 
-    // 2. Clear the area with a transparent background
-    // Color::Reset ensures we use your terminal's background/transparency
+    let accent_color = app.mode.get_color();
+
     let main_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Cyan))
+        .border_style(Style::default().fg(accent_color))
         .style(Style::default().bg(Color::Reset));
 
-    // 3. Split the centered area into Timer (Top) and Todo (Bottom)
+    let inner_area = main_block.inner(area);
+    f.render_widget(main_block, area);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage(40), // Timer space
-            Constraint::Percentage(60), // Todo space
+            Constraint::Length(3), 
+            Constraint::Min(1),    
         ])
-        .split(main_block.inner(area));
+        .split(inner_area);
 
-    // 4. Render the Timer
+    // Timer
     let timer_text = format_duration(app.time_remaining);
-    let timer_color = if app.is_running { Color::Green } else { Color::Yellow };
-    
     let timer_para = Paragraph::new(timer_text)
         .alignment(Alignment::Center)
-        .style(Style::default().fg(timer_color).add_modifier(Modifier::BOLD));
+        .style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD));
+    
+    f.render_widget(timer_para, chunks[0]);
 
-    // 5. Render the Todo List (Placeholder for now)
+    // Priority Tasks
     let tasks: Vec<ListItem> = app.tasks
         .iter()
         .map(|t| {
-            let symbol = if t.is_done { "󰄲 " } else { "󰄱 " };
-            ListItem::new(format!("{} {}", symbol, t.title))
+            let symbol = if t.is_done { "󰄲" } else { "󰄱" };
+            ListItem::new(Line::from(vec![
+                Span::styled(format!(" {} ", symbol), Style::default().fg(accent_color)),
+                Span::raw(t.title.clone()),
+            ]))
         })
         .collect();
 
     let list = List::new(tasks)
-        .block(Block::default().title(" Priorities ").borders(Borders::TOP))
-        .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
-        .highlight_symbol(">> ");
+        .highlight_style(Style::default().bg(Color::Indexed(8)).fg(Color::White))
+        .highlight_symbol(" ");
 
-    // Final Renders
-    f.render_widget(main_block, area);
-    f.render_widget(timer_para, chunks[0]);
     f.render_stateful_widget(list, chunks[1], &mut app.task_state);
 }
 
-/// Helper function to center a rectangle
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -75,10 +73,9 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
-/// Helper to format Duration into MM:SS
 fn format_duration(duration: std::time::Duration) -> String {
     let secs = duration.as_secs();
     let mins = secs / 60;
     let secs = secs % 60;
-    format!("\n\n{:02}:{:02}", mins, secs)
+    format!("{:02}:{:02}", mins, secs)
 }

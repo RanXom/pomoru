@@ -1,4 +1,5 @@
 use ratatui::widgets::ListState;
+use ratatui::prelude::Color;
 use std::time::Duration;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -6,6 +7,16 @@ pub enum SessionMode {
     Work,
     ShortBreak,
     LongBreak,
+}
+
+impl SessionMode {
+    pub fn get_color(&self) -> Color {
+        match self {
+            SessionMode::Work => Color::Cyan,
+            SessionMode::ShortBreak => Color::Green,
+            SessionMode::LongBreak => Color::Magenta,
+        }
+    }
 }
 
 pub struct Task {
@@ -24,11 +35,16 @@ pub struct Pomo {
 
 impl Pomo {
     pub fn new() -> Self {
+        let dummy_tasks = vec![
+            Task { title: "Complete Milestone 1".into(), is_done: true },
+            Task { title: "Refactor UI for Flocus look".into(), is_done: false },
+        ];
+
         Self {
             mode: SessionMode::Work,
             time_remaining: Duration::from_secs(25 * 60),
             is_running: false,
-            tasks: Vec::new(),
+            tasks: dummy_tasks,
             task_state: ListState::default(),
             should_quit: false,
         }
@@ -39,7 +55,7 @@ impl Pomo {
             self.time_remaining -= Duration::from_secs(1);
         } else if self.time_remaining.as_secs() == 0 {
             self.is_running = false;
-            // logic for switching modes will go here
+            // TODO: Add further mode switching logic
         }
     }
 

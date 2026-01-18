@@ -9,7 +9,7 @@ use crossterm::{
 };
 use ratatui::prelude::*;
 use std::io;
-use std::time::Duration;
+use std::time::{Duration, Instant}; // Fixed: Added Instant here
 
 impl Pomo {
     pub fn run(&mut self) -> io::Result<()> {
@@ -19,10 +19,17 @@ impl Pomo {
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
 
+        let mut last_tick = Instant::now();
+        let tick_rate = Duration::from_millis(250);
+
         while !self.should_quit {
             terminal.draw(|f| ui::render(f, self))?;
 
-            if event::poll(Duration::from_millis(250))? {
+            let timeout = tick_rate
+                .checked_sub(last_tick.elapsed())
+                .unwrap_or_else(|| Duration::from_secs(0));
+
+            if event::poll(timeout)? {
                 if let Event::Key(key) = event::read()? {
                     match key.code {
                         KeyCode::Char('q') => self.should_quit = true,
@@ -31,7 +38,11 @@ impl Pomo {
                     }
                 }
             }
-            self.tick();
+
+            if last_tick.elapsed() >= Duration::from_secs(1) {
+                self.tick();
+                last_tick = Instant::now();
+            }
         }
 
         disable_raw_mode()?;
