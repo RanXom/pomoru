@@ -34,6 +34,9 @@ impl Pomo {
                     match key.code {
                         KeyCode::Char('q') => self.should_quit = true,
                         KeyCode::Char(' ') => self.toggle_timer(),
+                        KeyCode::Char('j') | KeyCode::Down => self.next_task(),
+                        KeyCode::Char('k') | KeyCode::Up => self.previous_task(),
+                        KeyCode::Enter => self.toggle_task(),
                         _ => {}
                     }
                 }

@@ -52,14 +52,58 @@ impl Pomo {
 
     pub fn tick(&mut self) {
         if self.is_running && self.time_remaining.as_secs() > 0 {
-            self.time_remaining -= Duration::from_secs(1);
-        } else if self.time_remaining.as_secs() == 0 {
+            self.time_remaining -= std::time::Duration::from_secs(1);
+        } else if self.is_running && self.time_remaining.as_secs() == 0 {
             self.is_running = false;
-            // TODO: Add further mode switching logic
+            // Simple rotation: Work -> ShortBreak -> Work
+            match self.mode {
+                SessionMode::Work => {
+                    self.mode = SessionMode::ShortBreak;
+                    self.time_remaining = std::time::Duration::from_secs(5 * 60);
+                }
+                _ => {
+                    self.mode = SessionMode::Work;
+                    self.time_remaining = std::time::Duration::from_secs(25 * 60);
+                }
+            }
         }
     }
 
     pub fn toggle_timer(&mut self) {
         self.is_running = !self.is_running;
+    }
+
+    pub fn next_task(&mut self) {
+        let i = match self.task_state.selected() {
+            Some(i) => {
+                if i >= self.tasks.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.task_state.select(Some(i));
+    }
+
+    pub fn previous_task(&mut self) {
+        let i = match self.task_state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.tasks.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.task_state.select(Some(i));
+    }
+
+    pub fn toggle_task(&mut self) {
+        if let Some(i) = self.task_state.selected() {
+            self.tasks[i].is_done = !self.tasks[i].is_done;
+        }
     }
 }
