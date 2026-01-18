@@ -1,17 +1,53 @@
 pub mod state;
 pub mod ui;
 
-use crate::pomo::state::{Pomo, AppScreen, InputMode, Task, SessionMode};
+use crate::pomo::state::{Pomo, AppScreen, InputMode, Task, SessionMode, Config};
 use crossterm::{
     event::{self, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::prelude::*;
-use std::io;
-use std::time::Duration;
+use std::{ io, time::Duration, fs };
+use directories::ProjectDirs;
 
 impl Pomo {
+    pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let config = Config {
+            work_time_mins: self.work_time.as_secs() / 60,
+            short_break_mins: self.short_break_time.as_secs() / 60,
+            long_break_mins: self.long_break_time.as_secs() / 60,
+            tasks: self.tasks.clone(),
+        };
+
+        let toml = toml::to_string_pretty(&config)?;
+        let config_dir = ProjectDirs::from("", "", "pomoru")
+            .ok_or("Could not find config directory")?
+            .config_dir()
+            .to_path_buf();
+
+        fs::create_dir_all(&config_dir)?;
+        fs::write(config_dir.join("config.toml"), toml)?;
+        Ok(())
+    }
+
+    pub fn load() -> Self {
+        let mut app = Pomo::new();
+        if let Some(proj_dirs) = ProjectDirs::from("", "", "pomoru") {
+            let config_path = proj_dirs.config_dir().join("config.toml");
+            if let Ok(content) = fs::read_to_string(config_path) {
+                if let Ok(config) = toml::from_str::<Config>(&content) {
+                    app.work_time = Duration::from_secs(config.work_time_mins * 60);
+                    app.short_break_time = Duration::from_secs(config.short_break_mins * 60);
+                    app.long_break_time = Duration::from_secs(config.long_break_mins * 60);
+                    app.tasks = config.tasks;
+                    app.reset_timer_to_mode();
+                }
+            }
+        }
+        app
+    }
+
     pub async fn run(&mut self) -> io::Result<()> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -37,6 +73,10 @@ impl Pomo {
                         }
                     }
                 }
+            }
+
+            if self.should_quit {
+                let _ = self.save();
             }
         }
 

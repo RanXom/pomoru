@@ -1,5 +1,6 @@
 use ratatui::widgets::ListState;
 use std::time::Duration;
+use serde::{ Serialize, Deserialize };
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum SessionMode { Work, ShortBreak, LongBreak }
@@ -10,9 +11,18 @@ pub enum AppScreen { Timer, Tasks }
 #[derive(PartialEq, Clone, Copy)]
 pub enum InputMode { Normal, Insert, Edit, TimerEdit }
 
+#[derive(Serialize, Deserialize)]
+pub struct Config {
+    pub work_time_mins: u64,
+    pub short_break_mins: u64,
+    pub long_break_mins: u64,
+    pub tasks: Vec<Task>
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Task {
     pub title: String,
-    pub is_done: bool,
+    pub is_done: bool
 }
 
 pub struct Pomo {

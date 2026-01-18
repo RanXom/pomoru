@@ -20,7 +20,7 @@ fn setup_panic_hook() {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     setup_panic_hook();
-    let mut app = Pomo::new();
+    let mut app = Pomo::load();
     app.run().await?;
     Ok(())
 }
