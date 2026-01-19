@@ -28,11 +28,9 @@ A minimalist Pomodoro TUI with a task list, written in Rust.
 
 ---
 
-## Screenshots
+## Demo
 
-![Timer screen](screenshots/1.png)
-![Task screen](screenshots/2.png)
-![Input modal](screenshots/3.png)
+![Demo](screenshots/demo.gif)
 
 ---
 
