@@ -69,7 +69,9 @@ impl Pomo {
                 event_res = tokio::task::spawn_blocking(|| event::poll(Duration::from_millis(16))) => {
                     if let Ok(Ok(true)) = event_res {
                         if let Ok(Event::Key(key)) = event::read() {
-                            self.handle_key(key);
+                            if key.kind == event::KeyEventKind::Press {
+                                self.handle_key(key);
+                            }
                         }
                     }
                 }
