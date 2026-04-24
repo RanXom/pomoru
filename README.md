@@ -31,7 +31,7 @@ A minimalist Pomodoro TUI with a task list, written in Rust.
 
 ## Demo
 
-![Demo](screenshots/demo.gif)
+![Demo](screenshots/demo2.gif)
 
 ---
 
