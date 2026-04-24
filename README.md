@@ -23,7 +23,8 @@ A minimalist Pomodoro TUI with a task list, written in Rust.
 ### Design
 
 * Keyboard-only interaction
-* Minimalist interface (Catppuccin Mocha themed)
+* Minimalist interface 
+* Dynamic theming system (for Noctalia Shell users)
 * Configuration saved locally
 
 ---
@@ -56,7 +57,9 @@ A minimalist Pomodoro TUI with a task list, written in Rust.
 | `e`         | Edit selected task   |
 | `d`         | Delete selected task |
 | `j` / `↓`   | Move down            |
+| `J`         | Move task down       |
 | `k` / `↑`   | Move up              |
+| `K`         | Move task up         |
 | `t` / `esc` | Back to timer        |
 
 ---
@@ -92,10 +95,31 @@ is_done = false
 
 ## Installation
 
+### Prebuilt binary
+
+Download from the releases page:
+
+https://github.com/RanXom/pomoru/releases
+
+```bash
+tar -xvf pomoru-1.0.0-x86_64.tar.gz
+cd pomoru-1.0.0-x86_64
+./pomoru
+```
+
+To install globally:
+
+```bash
+cd pomoru-1.0.0-x86_64
+sudo cp pomoru /usr/local/bin/
+pomoru
+```
+
 ### Arch Linux (AUR)
 
 ```bash
-yay -S pomoru
+yay -S pomoru        # build from source
+yay -S pomoru-bin    # prebuilt binary
 ```
 
 ### Build from source
