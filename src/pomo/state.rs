@@ -1,7 +1,60 @@
+use directories::BaseDirs;
 use notify_rust::Notification;
-use ratatui::widgets::ListState;
+use ratatui::{style::Color, widgets::ListState};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{fs, time::Duration};
+
+#[derive(Clone, Copy)]
+pub struct Theme {
+    pub primary: Color,
+    pub overlay0: Color,
+    pub surface0: Color,
+    pub text: Color,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NoctaliaColors {
+    m_primary: String,
+    m_on_surface_variant: String,
+    m_surface_variant: String,
+    m_on_surface: String,
+}
+
+fn parse_hex_color(hex: &str) -> Option<Color> {
+    if hex.len() == 7 && hex.starts_with('#') {
+        let r = u8::from_str_radix(&hex[1..3], 16).ok()?;
+        let g = u8::from_str_radix(&hex[3..5], 16).ok()?;
+        let b = u8::from_str_radix(&hex[5..7], 16).ok()?;
+        Some(Color::Rgb(r, g, b))
+    } else {
+        None
+    }
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        let mut theme = Self {
+            primary: Color::Rgb(180, 190, 254),
+            overlay0: Color::Rgb(108, 112, 134),
+            surface0: Color::Rgb(49, 50, 68),
+            text: Color::Rgb(205, 214, 244),
+        };
+        
+        if let Some(base_dirs) = BaseDirs::new() {
+            let path = base_dirs.home_dir().join(".config/noctalia/colors.json");
+            if let Ok(content) = fs::read_to_string(&path) {
+                if let Ok(colors) = serde_json::from_str::<NoctaliaColors>(&content) {
+                    if let Some(c) = parse_hex_color(&colors.m_primary) { theme.primary = c; }
+                    if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) { theme.overlay0 = c; }
+                    if let Some(c) = parse_hex_color(&colors.m_surface_variant) { theme.surface0 = c; }
+                    if let Some(c) = parse_hex_color(&colors.m_on_surface) { theme.text = c; }
+                }
+            }
+        }
+        theme
+    }
+}
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum SessionMode {
@@ -53,6 +106,7 @@ pub struct Pomo {
     pub task_state: ListState,
     pub input_buffer: String,
     pub should_quit: bool,
+    pub theme: Theme,
 }
 
 impl Pomo {
@@ -73,6 +127,7 @@ impl Pomo {
             task_state: ListState::default(),
             input_buffer: String::new(),
             should_quit: false,
+            theme: Theme::default(),
         }
     }
 
