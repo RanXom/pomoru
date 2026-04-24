@@ -1,27 +1,5 @@
 use crate::pomo::state::{AppScreen, InputMode, Pomo, SessionMode};
 use ratatui::{prelude::*, widgets::*};
-use std::fs::File;
-
-const json_file_path = Path::new("~/.config/noctalia/colors.json");
-const file = File::open(json_file_path);
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Colors {
-    m_primary: String,
-    m_on_primary: String,
-    m_secondary: String,
-    m_on_secondary: String,
-    m_tertiary: String,
-    m_on_tertiary: String,
-    m_surface: String,
-    m_on_surface: String,
-}
-
-const MOCHA_LAVENDER: Color = Color::Rgb(180, 190, 254);
-const MOCHA_OVERLAY0: Color = Color::Rgb(108, 112, 134);
-const MOCHA_SURFACE0: Color = Color::Rgb(49, 50, 68);
-const MOCHA_TEXT: Color = Color::Rgb(205, 214, 244);
 
 pub fn render(f: &mut Frame, app: &mut Pomo) {
     let main_block = Block::default().style(Style::default().bg(Color::Reset));
@@ -53,7 +31,7 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
             f.render_widget(
                 Paragraph::new(footer)
                     .alignment(Alignment::Center)
-                    .style(Style::default().fg(MOCHA_OVERLAY0)),
+                    .style(Style::default().fg(app.theme.overlay0)),
                 root_layout[1],
             );
         }
@@ -90,7 +68,7 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
     f.render_widget(
         Paragraph::new(priority_text)
             .alignment(Alignment::Center)
-            .style(Style::default().fg(MOCHA_LAVENDER).bold()),
+            .style(Style::default().fg(app.theme.primary).bold()),
         chunks[0],
     );
 
@@ -99,7 +77,7 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
     f.render_widget(
         Paragraph::new(big_text)
             .alignment(Alignment::Center)
-            .style(Style::default().fg(MOCHA_LAVENDER)),
+            .style(Style::default().fg(app.theme.primary)),
         chunks[2],
     );
 
@@ -212,9 +190,9 @@ fn render_session_dots(f: &mut Frame, app: &Pomo, area: Rect) {
         .map(|(i, (mode, label))| {
             let is_active = app.mode == *mode;
             let color = if is_active {
-                MOCHA_LAVENDER
+                app.theme.primary
             } else {
-                MOCHA_OVERLAY0
+                app.theme.overlay0
             };
             let content = if is_active {
                 format!("• {}", label)
@@ -255,9 +233,9 @@ pub fn render_task_screen(f: &mut Frame, app: &mut Pomo, footer_area: Rect) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .padding(Padding::uniform(1))
-                .border_style(Style::default().fg(MOCHA_LAVENDER)),
+                .border_style(Style::default().fg(app.theme.primary)),
         )
-        .highlight_style(Style::default().bg(MOCHA_SURFACE0).fg(MOCHA_TEXT).bold())
+        .highlight_style(Style::default().bg(app.theme.surface0).fg(app.theme.text).bold())
         .highlight_symbol(">> ");
 
     f.render_stateful_widget(list, area, &mut app.task_state);
@@ -266,7 +244,7 @@ pub fn render_task_screen(f: &mut Frame, app: &mut Pomo, footer_area: Rect) {
     f.render_widget(
         Paragraph::new(footer_text)
             .alignment(Alignment::Center)
-            .style(Style::default().fg(MOCHA_OVERLAY0)),
+            .style(Style::default().fg(app.theme.overlay0)),
         footer_area,
     );
 }
@@ -301,11 +279,11 @@ pub fn render_input_modal(f: &mut Frame, app: &Pomo) {
     let block = Block::default()
         .title(Span::styled(
             title_text,
-            Style::default().fg(MOCHA_LAVENDER).bold(),
+            Style::default().fg(app.theme.primary).bold(),
         ))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(MOCHA_LAVENDER));
+        .border_style(Style::default().fg(app.theme.primary));
 
     // Nested layout for perfect internal vertical centering
     let inner_area = block.inner(area);
@@ -331,7 +309,7 @@ pub fn render_input_modal(f: &mut Frame, app: &Pomo) {
         Paragraph::new(app.input_buffer.as_str())
             .scroll((0, scroll))
             .block(Block::default().padding(Padding::horizontal(horizontal_padding)))
-            .style(Style::default().fg(MOCHA_TEXT).bold()),
+            .style(Style::default().fg(app.theme.text).bold()),
         vertical_chunks[1],
     );
 
