@@ -1,5 +1,22 @@
 use crate::pomo::state::{AppScreen, InputMode, Pomo, SessionMode};
 use ratatui::{prelude::*, widgets::*};
+use std::fs::File;
+
+const json_file_path = Path::new("~/.config/noctalia/colors.json");
+const file = File::open(json_file_path);
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Colors {
+    m_primary: String,
+    m_on_primary: String,
+    m_secondary: String,
+    m_on_secondary: String,
+    m_tertiary: String,
+    m_on_tertiary: String,
+    m_surface: String,
+    m_on_surface: String,
+}
 
 const MOCHA_LAVENDER: Color = Color::Rgb(180, 190, 254);
 const MOCHA_OVERLAY0: Color = Color::Rgb(108, 112, 134);
