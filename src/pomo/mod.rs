@@ -1,7 +1,10 @@
 pub mod state;
 pub mod ui;
 
-use crate::pomo::state::{AppScreen, Config, InputMode, Pomo, SessionMode, Task};
+use crate::pomo::{
+    state::{AppScreen, Config, CurrentStatus, InputMode, Pomo, SessionMode, Task},
+    ui::format_duration,
+};
 use crossterm::{
     event::{self, Event, KeyCode},
     execute,
@@ -12,6 +15,26 @@ use ratatui::prelude::*;
 use std::{fs, io, time::Duration};
 
 impl Pomo {
+    pub fn current_status(&self) -> CurrentStatus {
+        let class = match self.mode {
+            SessionMode::ShortBreak => "short-break",
+            SessionMode::LongBreak => "long-break",
+            SessionMode::Work => "work",
+        };
+
+        let tooltip = match self.mode {
+            SessionMode::ShortBreak => "Short Break",
+            SessionMode::LongBreak => "Long Break",
+            SessionMode::Work => "Work",
+        };
+
+        CurrentStatus {
+            text: format_duration(self.time_remaining),
+            tooltip: tooltip.to_string(),
+            class: class.to_string(),
+        }
+    }
+
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let config = Config {
             work_time_mins: self.work_time.as_secs() / 60,
