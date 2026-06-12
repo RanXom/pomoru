@@ -1,7 +1,10 @@
 pub mod state;
 pub mod ui;
 
-use crate::pomo::state::{AppScreen, Config, InputMode, Pomo, SessionMode, Task};
+use crate::pomo::{
+    state::{AppScreen, Config, CurrentStatus, InputMode, Pomo, SessionMode, Task},
+    ui::format_duration,
+};
 use crossterm::{
     event::{self, Event, KeyCode},
     execute,
@@ -12,6 +15,63 @@ use ratatui::prelude::*;
 use std::{fs, io, time::Duration};
 
 impl Pomo {
+    pub fn current_status(&self) -> CurrentStatus {
+        let class = match self.mode {
+            SessionMode::ShortBreak => "short-break",
+            SessionMode::LongBreak => "long-break",
+            SessionMode::Work => "work",
+        };
+
+        let tooltip = match self.mode {
+            SessionMode::ShortBreak => "Short Break",
+            SessionMode::LongBreak => "Long Break",
+            SessionMode::Work => "Work",
+        };
+
+        let icon = match self.mode {
+            SessionMode::Work => "󰄉",
+            SessionMode::ShortBreak => "󰾅",
+            SessionMode::LongBreak => "󰒲",
+        };
+
+        CurrentStatus {
+            text: format!("{icon} {tooltip} {}", format_duration(self.time_remaining)),
+            tooltip: tooltip.to_string(),
+            class: class.to_string(),
+        }
+    }
+
+    pub fn export_status(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let status = self.current_status();
+
+        let json = serde_json::to_string(&status)?;
+
+        let cache_dir = ProjectDirs::from("", "", "pomoru")
+            .ok_or("Could not find cache directory")?
+            .cache_dir()
+            .to_path_buf();
+
+        fs::create_dir_all(&cache_dir)?;
+        fs::write(cache_dir.join("status.json"), json)?;
+
+        Ok(())
+    }
+
+    pub fn clear_status(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let cache_dir = ProjectDirs::from("", "", "pomoru")
+            .ok_or("Could not find cache directory")?
+            .cache_dir()
+            .to_path_buf();
+
+        let status_file = cache_dir.join("status.json");
+
+        if status_file.exists() {
+            fs::remove_file(status_file)?;
+        }
+
+        Ok(())
+    }
+
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let config = Config {
             work_time_mins: self.work_time.as_secs() / 60,
@@ -59,12 +119,15 @@ impl Pomo {
 
         let mut second_tick = tokio::time::interval(Duration::from_secs(1));
 
+        let _ = self.export_status();
+
         while !self.should_quit {
             terminal.draw(|f| ui::render(f, self))?;
 
             tokio::select! {
                 _ = second_tick.tick() => {
                     self.tick();
+                    let _ = self.export_status();
                 }
 
                 // Tighten poll to 16ms (~60fps feel) for input responsiveness
@@ -74,12 +137,14 @@ impl Pomo {
                         && key.kind == event::KeyEventKind::Press
                     {
                         self.handle_key(key);
+                        let _ = self.export_status();
                     }
                }
             }
 
             if self.should_quit {
                 let _ = self.save();
+                let _ = self.clear_status();
             }
         }
 

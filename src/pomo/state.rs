@@ -100,6 +100,13 @@ fn default_auto_switch() -> bool {
     true
 }
 
+#[derive(Serialize)]
+pub struct CurrentStatus {
+    pub text: String,
+    pub tooltip: String,
+    pub class: String,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Task {
     pub title: String,

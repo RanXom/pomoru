@@ -1,31 +1,39 @@
+<div align="center">
+
 # pomoru
 
 A minimalist Pomodoro TUI with a task list, written in Rust.
 
-`pomoru` is a keyboard-driven TUI application for focused work. It combines a Pomodoro timer with a small task manager so you can track what you’re working on without leaving the terminal.
+![Rust](https://img.shields.io/badge/Rust-Language-orange?logo=rust)
+![ratatui](https://img.shields.io/badge/ratatui-TUI-blue)
+![Tokio](https://img.shields.io/badge/Tokio-Async_Runtime-green)
+![AUR](https://img.shields.io/aur/version/pomoru?logo=arch-linux)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
----
+</div>
 
 ## Features
 
 ### Timer
 
-* Work, short break, and long break sessions
-* Customizable durations
-* Desktop notifications when sessions end
+- Work, short break, and long break sessions
+- Customizable durations
+- Desktop notifications when sessions end
+- Optional automatic session switching
+- Manual session progression mode
 
 ### Tasks
 
-* Add, edit, delete tasks
-* Toggle completion
-* Task list persists across runs
+- Add, edit, delete tasks
+- Toggle completion
+- Task list persists across runs
 
 ### Design
 
-* Keyboard-only interaction
-* Minimalist interface 
-* Dynamic theming system (for Noctalia Shell users)
-* Configuration saved locally
+- Keyboard-only interaction
+- Minimalist interface
+- Dynamic theming system (for Noctalia Shell users)
+- Configuration saved locally
 
 ---
 
@@ -39,14 +47,15 @@ A minimalist Pomodoro TUI with a task list, written in Rust.
 
 ### Timer screen
 
-| Key     | Action                            |
-| ------- | --------------------------------- |
-| `space` | Start or pause timer              |
-| `tab`   | Change session type (when paused) |
-| `e`     | Edit current session time         |
-| `r`     | Reset timer                       |
-| `t`     | Open task list                    |
-| `q`     | Quit                              |
+| Key     | Action                             |
+| ------- | ---------------------------------- |
+| `space` | Start or pause timer               |
+| `tab`   | Change session type (when paused)  |
+| `a`     | Toggle automatic session switching |
+| `e`     | Edit current session time          |
+| `r`     | Reset timer                        |
+| `t`     | Open task list                     |
+| `q`     | Quit                               |
 
 ### Task screen
 
@@ -72,12 +81,12 @@ Config file location:
 
 ```text
 ~/.config/pomoru/config.toml
-````
+```
 
 Saved data includes:
 
-* Work and break durations
-* Task list
+- Work and break durations
+- Task list
 
 Example:
 
@@ -85,10 +94,54 @@ Example:
 work_time_mins = 25
 short_break_mins = 5
 long_break_mins = 15
+auto_switch_sessions = true
 
 [[tasks]]
 title = "Read documentation"
 is_done = false
+```
+
+---
+
+## Status Export
+
+Pomoru exports its current state to:
+
+```text
+~/.cache/pomoru/status.json
+```
+
+Example:
+
+```json
+{
+  "text": "󰄉 Work 24:31",
+  "tooltip": "Work",
+  "class": "work"
+}
+```
+
+This can be used by:
+
+- Waybar
+- Custom status bars
+- Shell scripts
+- Desktop widgets
+
+---
+
+### Waybar
+
+The previously stated `status.json` can be used in Waybar as follows:
+
+```json
+"custom/pomoru": {
+  "exec": "cat ~/.cache/pomoru/status.json",
+  "return-type": "json",
+  "interval": 1,
+  "format": "{text}",
+  "tooltip": true
+}
 ```
 
 ---
@@ -140,12 +193,12 @@ cargo install --path .
 
 ## Built with
 
-* Rust
-* ratatui
-* crossterm
-* tokio
-* notify-rust
-* serde + toml
+- Rust
+- ratatui
+- crossterm
+- tokio
+- notify-rust
+- serde + toml
 
 ---
 
