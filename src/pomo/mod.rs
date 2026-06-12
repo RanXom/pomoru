@@ -98,6 +98,8 @@ impl Pomo {
 
         let mut second_tick = tokio::time::interval(Duration::from_secs(1));
 
+        let _ = self.export_status();
+
         while !self.should_quit {
             terminal.draw(|f| ui::render(f, self))?;
 
@@ -114,6 +116,7 @@ impl Pomo {
                         && key.kind == event::KeyEventKind::Press
                     {
                         self.handle_key(key);
+                        let _ = self.export_status();
                     }
                }
             }
