@@ -91,7 +91,13 @@ pub struct Config {
     pub short_break_mins: u64,
     pub long_break_mins: u64,
     pub tasks: Vec<Task>,
+
+    #[serde(default = "default_auto_switch")]
     pub auto_switch_sessions: bool,
+}
+
+fn default_auto_switch() -> bool {
+    true
 }
 
 #[derive(Serialize, Deserialize, Clone)]
