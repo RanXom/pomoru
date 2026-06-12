@@ -40,15 +40,23 @@ impl Default for Theme {
             surface0: Color::Rgb(49, 50, 68),
             text: Color::Rgb(205, 214, 244),
         };
-        
+
         if let Some(base_dirs) = BaseDirs::new() {
             let path = base_dirs.home_dir().join(".config/noctalia/colors.json");
-            if let Ok(content) = fs::read_to_string(&path) {
-                if let Ok(colors) = serde_json::from_str::<NoctaliaColors>(&content) {
-                    if let Some(c) = parse_hex_color(&colors.m_primary) { theme.primary = c; }
-                    if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) { theme.overlay0 = c; }
-                    if let Some(c) = parse_hex_color(&colors.m_surface_variant) { theme.surface0 = c; }
-                    if let Some(c) = parse_hex_color(&colors.m_on_surface) { theme.text = c; }
+            if let Ok(content) = fs::read_to_string(&path)
+                && let Ok(colors) = serde_json::from_str::<NoctaliaColors>(&content)
+            {
+                if let Some(c) = parse_hex_color(&colors.m_primary) {
+                    theme.primary = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) {
+                    theme.overlay0 = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.m_surface_variant) {
+                    theme.surface0 = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.m_on_surface) {
+                    theme.text = c;
                 }
             }
         }
@@ -83,6 +91,13 @@ pub struct Config {
     pub short_break_mins: u64,
     pub long_break_mins: u64,
     pub tasks: Vec<Task>,
+
+    #[serde(default = "default_auto_switch")]
+    pub auto_switch_sessions: bool,
+}
+
+fn default_auto_switch() -> bool {
+    true
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -101,6 +116,7 @@ pub struct Pomo {
     pub time_remaining: Duration,
     pub total_duration: Duration,
     pub is_running: bool,
+    pub auto_switch_sessions: bool,
     pub break_count: u32,
     pub tasks: Vec<Task>,
     pub task_state: ListState,
@@ -122,6 +138,7 @@ impl Pomo {
             time_remaining: work,
             total_duration: work,
             is_running: false,
+            auto_switch_sessions: true,
             break_count: 0,
             tasks: Vec::new(),
             task_state: ListState::default(),
@@ -157,8 +174,14 @@ impl Pomo {
             };
 
             self.send_notification(title, msg);
-            self.transition_next_session();
-            self.is_running = true;
+
+            if self.auto_switch_sessions {
+                self.transition_next_session();
+                self.is_running = true;
+            } else {
+                self.is_running = false;
+                self.reset_timer_to_mode();
+            }
         }
     }
 
@@ -166,7 +189,7 @@ impl Pomo {
         match self.mode {
             SessionMode::Work => {
                 self.break_count += 1;
-                if self.break_count % 3 == 0 {
+                if self.break_count.is_multiple_of(3) {
                     self.mode = SessionMode::LongBreak;
                     self.time_remaining = self.long_break_time;
                     self.total_duration = self.long_break_time;

@@ -27,7 +27,16 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
 
             render_timer_screen(f, app, timer_v_center[1]);
 
-            let footer = "tab session • t tasks • e edit time • space pause • r reset • q quit";
+            let auto_switch = if app.auto_switch_sessions {
+                "a next: auto"
+            } else {
+                "a next: manual"
+            };
+
+            let footer = format!(
+                "tab session • {} • t tasks • e edit time • space pause • r reset • q quit",
+                auto_switch
+            );
             f.render_widget(
                 Paragraph::new(footer)
                     .alignment(Alignment::Center)
@@ -89,83 +98,17 @@ fn format_monolithic_ascii(time: &str) -> Text<'static> {
     let mut lines = vec![String::new(); 5];
     for (idx, c) in time.chars().enumerate() {
         let art = match c {
-            '0' => vec![
-                " ██████ ", 
-                "██    ██", 
-                "██    ██", 
-                "██    ██", 
-                " ██████ "
-            ],
-            '1' => vec![
-                "   ██   ", 
-                "  ███   ", 
-                "   ██   ", 
-                "   ██   ", 
-                " ██████ "
-            ],
-            '2' => vec![
-                " ██████ ", 
-                "██    ██", 
-                "    ███ ", 
-                "  ███   ", 
-                "████████"
-            ],
-            '3' => vec![
-                " ██████ ", 
-                "      ██", 
-                "  █████ ", 
-                "      ██", 
-                " ██████ "
-            ],
-            '4' => vec![
-                "██    ██", 
-                "██    ██", 
-                "████████", 
-                "      ██", 
-                "      ██"
-            ],
-            '5' => vec![
-                "████████", 
-                "██      ", 
-                "███████ ", 
-                "      ██", 
-                "███████ "
-            ],
-            '6' => vec![
-                " ██████ ", 
-                "██      ", 
-                "███████ ", 
-                "██    ██", 
-                " ██████ "
-            ],
-            '7' => vec![
-                "████████", 
-                "      ██", 
-                "     ██ ", 
-                "    ██  ", 
-                "   ██   "
-            ],
-            '8' => vec![
-                " ██████ ", 
-                "██    ██", 
-                " ██████ ", 
-                "██    ██", 
-                " ██████ "
-            ],
-            '9' => vec![
-                " ██████ ", 
-                "██    ██", 
-                " ███████", 
-                "      ██", 
-                " ██████ "
-            ],
-            ':' => vec![
-                "        ", 
-                "   █    ", 
-                "        ", 
-                "   █    ", 
-                "        "
-            ],
+            '0' => vec![" ██████ ", "██    ██", "██    ██", "██    ██", " ██████ "],
+            '1' => vec!["   ██   ", "  ███   ", "   ██   ", "   ██   ", " ██████ "],
+            '2' => vec![" ██████ ", "██    ██", "    ███ ", "  ███   ", "████████"],
+            '3' => vec![" ██████ ", "      ██", "  █████ ", "      ██", " ██████ "],
+            '4' => vec!["██    ██", "██    ██", "████████", "      ██", "      ██"],
+            '5' => vec!["████████", "██      ", "███████ ", "      ██", "███████ "],
+            '6' => vec![" ██████ ", "██      ", "███████ ", "██    ██", " ██████ "],
+            '7' => vec!["████████", "      ██", "     ██ ", "    ██  ", "   ██   "],
+            '8' => vec![" ██████ ", "██    ██", " ██████ ", "██    ██", " ██████ "],
+            '9' => vec![" ██████ ", "██    ██", " ███████", "      ██", " ██████ "],
+            ':' => vec!["        ", "   █    ", "        ", "   █    ", "        "],
             _ => vec!["        "; 5],
         };
         for i in 0..5 {
@@ -187,25 +130,28 @@ fn render_session_dots(f: &mut Frame, app: &Pomo, area: Rect) {
     let spans = modes
         .iter()
         .enumerate()
-        .map(|(i, (mode, label))| {
+        .flat_map(|(i, (mode, label))| {
             let is_active = app.mode == *mode;
             let color = if is_active {
                 app.theme.primary
             } else {
                 app.theme.overlay0
             };
+
             let content = if is_active {
                 format!("• {}", label)
             } else {
                 label.to_string()
             };
+
             let mut s = vec![Span::styled(content, Style::default().fg(color))];
+
             if i < modes.len() - 1 {
                 s.push(Span::raw("     "));
             }
+
             s
         })
-        .flatten()
         .collect::<Vec<_>>();
 
     f.render_widget(
@@ -235,7 +181,12 @@ pub fn render_task_screen(f: &mut Frame, app: &mut Pomo, footer_area: Rect) {
                 .padding(Padding::uniform(1))
                 .border_style(Style::default().fg(app.theme.primary)),
         )
-        .highlight_style(Style::default().bg(app.theme.surface0).fg(app.theme.text).bold())
+        .highlight_style(
+            Style::default()
+                .bg(app.theme.surface0)
+                .fg(app.theme.text)
+                .bold(),
+        )
         .highlight_symbol(">> ");
 
     f.render_stateful_widget(list, area, &mut app.task_state);

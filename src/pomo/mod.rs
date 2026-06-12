@@ -18,6 +18,7 @@ impl Pomo {
             short_break_mins: self.short_break_time.as_secs() / 60,
             long_break_mins: self.long_break_time.as_secs() / 60,
             tasks: self.tasks.clone(),
+            auto_switch_sessions: self.auto_switch_sessions,
         };
 
         let toml = toml::to_string_pretty(&config)?;
@@ -35,14 +36,15 @@ impl Pomo {
         let mut app = Pomo::new();
         if let Some(proj_dirs) = ProjectDirs::from("", "", "pomoru") {
             let config_path = proj_dirs.config_dir().join("config.toml");
-            if let Ok(content) = fs::read_to_string(config_path) {
-                if let Ok(config) = toml::from_str::<Config>(&content) {
-                    app.work_time = Duration::from_secs(config.work_time_mins * 60);
-                    app.short_break_time = Duration::from_secs(config.short_break_mins * 60);
-                    app.long_break_time = Duration::from_secs(config.long_break_mins * 60);
-                    app.tasks = config.tasks;
-                    app.reset_timer_to_mode();
-                }
+            if let Ok(content) = fs::read_to_string(config_path)
+                && let Ok(config) = toml::from_str::<Config>(&content)
+            {
+                app.work_time = Duration::from_secs(config.work_time_mins * 60);
+                app.short_break_time = Duration::from_secs(config.short_break_mins * 60);
+                app.long_break_time = Duration::from_secs(config.long_break_mins * 60);
+                app.tasks = config.tasks;
+                app.auto_switch_sessions = config.auto_switch_sessions;
+                app.reset_timer_to_mode();
             }
         }
         app
@@ -67,14 +69,13 @@ impl Pomo {
 
                 // Tighten poll to 16ms (~60fps feel) for input responsiveness
                 event_res = tokio::task::spawn_blocking(|| event::poll(Duration::from_millis(16))) => {
-                    if let Ok(Ok(true)) = event_res {
-                        if let Ok(Event::Key(key)) = event::read() {
-                            if key.kind == event::KeyEventKind::Press {
-                                self.handle_key(key);
-                            }
-                        }
+                    if let Ok(Ok(true)) = event_res
+                        && let Ok(Event::Key(key)) = event::read()
+                        && key.kind == event::KeyEventKind::Press
+                    {
+                        self.handle_key(key);
                     }
-                }
+               }
             }
 
             if self.should_quit {
@@ -111,6 +112,9 @@ impl Pomo {
                     }
                 }
 
+                (AppScreen::Timer, KeyCode::Char('a')) => {
+                    self.auto_switch_sessions = !self.auto_switch_sessions
+                }
                 (AppScreen::Timer, KeyCode::Char('t')) => self.screen = AppScreen::Tasks,
                 (AppScreen::Timer, KeyCode::Char(' ')) => self.is_running = !self.is_running,
                 (AppScreen::Timer, KeyCode::Char('r')) => self.time_remaining = self.work_time,
