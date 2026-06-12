@@ -35,6 +35,16 @@ impl Pomo {
         }
     }
 
+    pub fn export_status(&self) -> std::io::Result<()> {
+        let status = self.current_status();
+
+        let json = serde_json::to_string(&status)?;
+
+        // TODO: write to ~/.cache/pomoru/status.json
+
+        Ok(())
+    }
+
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let config = Config {
             work_time_mins: self.work_time.as_secs() / 60,
@@ -88,6 +98,7 @@ impl Pomo {
             tokio::select! {
                 _ = second_tick.tick() => {
                     self.tick();
+                    let _ = self.export_status();
                 }
 
                 // Tighten poll to 16ms (~60fps feel) for input responsiveness
