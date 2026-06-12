@@ -35,12 +35,18 @@ impl Pomo {
         }
     }
 
-    pub fn export_status(&self) -> std::io::Result<()> {
+    pub fn export_status(&self) -> Result<(), Box<dyn std::error::Error>> {
         let status = self.current_status();
 
         let json = serde_json::to_string(&status)?;
 
-        // TODO: write to ~/.cache/pomoru/status.json
+        let cache_dir = ProjectDirs::from("", "", "pomoru")
+            .ok_or("Could not find cache directory")?
+            .cache_dir()
+            .to_path_buf();
+
+        fs::create_dir_all(&cache_dir)?;
+        fs::write(cache_dir.join("status.json"), json)?;
 
         Ok(())
     }
