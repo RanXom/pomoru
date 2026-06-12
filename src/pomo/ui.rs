@@ -34,7 +34,7 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
             };
 
             let footer = format!(
-                "tab session • t tasks • e edit time • space pause • r reset • {} • q quit",
+                "tab session • {} • t tasks • e edit time • space pause • r reset • q quit",
                 auto_switch
             );
             f.render_widget(

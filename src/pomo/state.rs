@@ -158,20 +158,21 @@ impl Pomo {
                 "Ref! Do Something! The break's over!",
             ];
 
+            // Use the remaining duration/break count as a seed for simple 'random' selection
+            let idx = (self.break_count as usize) % 4;
+
+            let (title, msg) = match self.mode {
+                SessionMode::Work => ("Focus Block Complete", focus_msg[idx]),
+                _ => ("Break Over", break_msg[idx]),
+            };
+
+            self.send_notification(title, msg);
+
             if self.auto_switch_sessions {
-                // Use the remaining duration/break count as a seed for simple 'random' selection
-                let idx = (self.break_count as usize) % 4;
-
-                let (title, msg) = match self.mode {
-                    SessionMode::Work => ("Focus Block Complete", focus_msg[idx]),
-                    _ => ("Break Over", break_msg[idx]),
-                };
-
-                self.send_notification(title, msg);
                 self.transition_next_session();
                 self.is_running = true;
             } else {
-                // TODO: Handle manual session switching
+                self.is_running = false;
             }
         }
     }

@@ -110,6 +110,9 @@ impl Pomo {
                     }
                 }
 
+                (AppScreen::Timer, KeyCode::Char('a')) => {
+                    self.auto_switch_sessions = !self.auto_switch_sessions
+                }
                 (AppScreen::Timer, KeyCode::Char('t')) => self.screen = AppScreen::Tasks,
                 (AppScreen::Timer, KeyCode::Char(' ')) => self.is_running = !self.is_running,
                 (AppScreen::Timer, KeyCode::Char('r')) => self.time_remaining = self.work_time,
