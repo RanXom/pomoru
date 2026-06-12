@@ -180,6 +180,7 @@ impl Pomo {
                 self.is_running = true;
             } else {
                 self.is_running = false;
+                self.reset_timer_to_mode();
             }
         }
     }
