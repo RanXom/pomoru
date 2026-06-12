@@ -18,6 +18,7 @@ impl Pomo {
             short_break_mins: self.short_break_time.as_secs() / 60,
             long_break_mins: self.long_break_time.as_secs() / 60,
             tasks: self.tasks.clone(),
+            auto_switch_sessions: self.auto_switch_sessions,
         };
 
         let toml = toml::to_string_pretty(&config)?;
@@ -42,6 +43,7 @@ impl Pomo {
                 app.short_break_time = Duration::from_secs(config.short_break_mins * 60);
                 app.long_break_time = Duration::from_secs(config.long_break_mins * 60);
                 app.tasks = config.tasks;
+                app.auto_switch_sessions = config.auto_switch_sessions;
                 app.reset_timer_to_mode();
             }
         }

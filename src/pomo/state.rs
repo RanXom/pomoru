@@ -91,6 +91,7 @@ pub struct Config {
     pub short_break_mins: u64,
     pub long_break_mins: u64,
     pub tasks: Vec<Task>,
+    pub auto_switch_sessions: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
