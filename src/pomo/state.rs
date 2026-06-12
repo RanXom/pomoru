@@ -43,20 +43,20 @@ impl Default for Theme {
 
         if let Some(base_dirs) = BaseDirs::new() {
             let path = base_dirs.home_dir().join(".config/noctalia/colors.json");
-            if let Ok(content) = fs::read_to_string(&path) {
-                if let Ok(colors) = serde_json::from_str::<NoctaliaColors>(&content) {
-                    if let Some(c) = parse_hex_color(&colors.m_primary) {
-                        theme.primary = c;
-                    }
-                    if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) {
-                        theme.overlay0 = c;
-                    }
-                    if let Some(c) = parse_hex_color(&colors.m_surface_variant) {
-                        theme.surface0 = c;
-                    }
-                    if let Some(c) = parse_hex_color(&colors.m_on_surface) {
-                        theme.text = c;
-                    }
+            if let Ok(content) = fs::read_to_string(&path)
+                && let Ok(colors) = serde_json::from_str::<NoctaliaColors>(&content)
+            {
+                if let Some(c) = parse_hex_color(&colors.m_primary) {
+                    theme.primary = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) {
+                    theme.overlay0 = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.m_surface_variant) {
+                    theme.surface0 = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.m_on_surface) {
+                    theme.text = c;
                 }
             }
         }
@@ -180,7 +180,7 @@ impl Pomo {
         match self.mode {
             SessionMode::Work => {
                 self.break_count += 1;
-                if self.break_count % 3 == 0 {
+                if self.break_count.is_multiple_of(3) {
                     self.mode = SessionMode::LongBreak;
                     self.time_remaining = self.long_break_time;
                     self.total_duration = self.long_break_time;
