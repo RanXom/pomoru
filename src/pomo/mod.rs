@@ -28,8 +28,14 @@ impl Pomo {
             SessionMode::Work => "Work",
         };
 
+        let icon = match self.mode {
+            SessionMode::Work => "󰄉",
+            SessionMode::ShortBreak => "󰾅",
+            SessionMode::LongBreak => "󰒲",
+        };
+
         CurrentStatus {
-            text: format_duration(self.time_remaining),
+            text: format!("{icon} {tooltip} {}", format_duration(self.time_remaining)),
             tooltip: tooltip.to_string(),
             class: class.to_string(),
         }
