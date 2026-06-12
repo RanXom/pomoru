@@ -57,6 +57,21 @@ impl Pomo {
         Ok(())
     }
 
+    pub fn clear_status(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let cache_dir = ProjectDirs::from("", "", "pomoru")
+            .ok_or("Could not find cache directory")?
+            .cache_dir()
+            .to_path_buf();
+
+        let status_file = cache_dir.join("status.json");
+
+        if status_file.exists() {
+            fs::remove_file(status_file)?;
+        }
+
+        Ok(())
+    }
+
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let config = Config {
             work_time_mins: self.work_time.as_secs() / 60,
@@ -129,6 +144,7 @@ impl Pomo {
 
             if self.should_quit {
                 let _ = self.save();
+                let _ = self.clear_status();
             }
         }
 
