@@ -130,25 +130,28 @@ fn render_session_dots(f: &mut Frame, app: &Pomo, area: Rect) {
     let spans = modes
         .iter()
         .enumerate()
-        .map(|(i, (mode, label))| {
+        .flat_map(|(i, (mode, label))| {
             let is_active = app.mode == *mode;
             let color = if is_active {
                 app.theme.primary
             } else {
                 app.theme.overlay0
             };
+
             let content = if is_active {
                 format!("• {}", label)
             } else {
                 label.to_string()
             };
+
             let mut s = vec![Span::styled(content, Style::default().fg(color))];
+
             if i < modes.len() - 1 {
                 s.push(Span::raw("     "));
             }
+
             s
         })
-        .flatten()
         .collect::<Vec<_>>();
 
     f.render_widget(
