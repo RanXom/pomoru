@@ -40,15 +40,23 @@ impl Default for Theme {
             surface0: Color::Rgb(49, 50, 68),
             text: Color::Rgb(205, 214, 244),
         };
-        
+
         if let Some(base_dirs) = BaseDirs::new() {
             let path = base_dirs.home_dir().join(".config/noctalia/colors.json");
             if let Ok(content) = fs::read_to_string(&path) {
                 if let Ok(colors) = serde_json::from_str::<NoctaliaColors>(&content) {
-                    if let Some(c) = parse_hex_color(&colors.m_primary) { theme.primary = c; }
-                    if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) { theme.overlay0 = c; }
-                    if let Some(c) = parse_hex_color(&colors.m_surface_variant) { theme.surface0 = c; }
-                    if let Some(c) = parse_hex_color(&colors.m_on_surface) { theme.text = c; }
+                    if let Some(c) = parse_hex_color(&colors.m_primary) {
+                        theme.primary = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) {
+                        theme.overlay0 = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.m_surface_variant) {
+                        theme.surface0 = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.m_on_surface) {
+                        theme.text = c;
+                    }
                 }
             }
         }
@@ -101,6 +109,7 @@ pub struct Pomo {
     pub time_remaining: Duration,
     pub total_duration: Duration,
     pub is_running: bool,
+    pub auto_switch_sessions: bool,
     pub break_count: u32,
     pub tasks: Vec<Task>,
     pub task_state: ListState,
@@ -122,6 +131,7 @@ impl Pomo {
             time_remaining: work,
             total_duration: work,
             is_running: false,
+            auto_switch_sessions: true,
             break_count: 0,
             tasks: Vec::new(),
             task_state: ListState::default(),
@@ -148,17 +158,21 @@ impl Pomo {
                 "Ref! Do Something! The break's over!",
             ];
 
-            // Use the remaining duration/break count as a seed for simple 'random' selection
-            let idx = (self.break_count as usize) % 4;
+            if self.auto_switch_sessions {
+                // Use the remaining duration/break count as a seed for simple 'random' selection
+                let idx = (self.break_count as usize) % 4;
 
-            let (title, msg) = match self.mode {
-                SessionMode::Work => ("Focus Block Complete", focus_msg[idx]),
-                _ => ("Break Over", break_msg[idx]),
-            };
+                let (title, msg) = match self.mode {
+                    SessionMode::Work => ("Focus Block Complete", focus_msg[idx]),
+                    _ => ("Break Over", break_msg[idx]),
+                };
 
-            self.send_notification(title, msg);
-            self.transition_next_session();
-            self.is_running = true;
+                self.send_notification(title, msg);
+                self.transition_next_session();
+                self.is_running = true;
+            } else {
+                // TODO: Handle manual session switching
+            }
         }
     }
 
