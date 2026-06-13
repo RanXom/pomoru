@@ -11,27 +11,30 @@ permissions:
 
 jobs:
   build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: pomoru
-            asset_name: pomoru-${{ github.ref_name }}-linux-x86_64
+            binary: pomoru
+            archive: pomoru-linux-x86_64.tar.gz
 
           - os: windows-latest
-            artifact_name: pomoru.exe
-            asset_name: pomoru-${{ github.ref_name }}-windows-x86_64.exe
+            binary: pomoru.exe
+            archive: pomoru-windows-x86_64.zip
 
           - os: macos-latest
-            artifact_name: pomoru
-            asset_name: pomoru-${{ github.ref_name }}-macos-aarch64
-
-    runs-on: ${{ matrix.os }}
+            binary: pomoru
+            archive: pomoru-macos-arm64.zip
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -39,24 +42,83 @@ jobs:
       - name: Build
         run: cargo build --release
 
-      - name: Rename binary
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         run: |
-          mkdir dist
+          mkdir package
 
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp target/release/${{ matrix.artifact_name }} dist/${{ matrix.asset_name }}
-          else
-            cp target/release/${{ matrix.artifact_name }} dist/${{ matrix.asset_name }}
-          fi
+          cp target/release/${{ matrix.binary }} package/
+          cp README.md package/
+          cp LICENSE package/
 
-      # - name: Upload Release Asset
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     files: dist/*
+          tar -czf ${{ matrix.archive }} -C package .
 
-      - name: Upload Artifact
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir package
+
+          cp target/release/${{ matrix.binary }} package/
+          cp README.md package/
+          cp LICENSE package/
+
+          cd package
+          zip -r ../${{ matrix.archive }} .
+          cd ..
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path package -Force
+
+          Copy-Item target/release/${{ matrix.binary }} package/
+          Copy-Item README.md package/
+          Copy-Item LICENSE package/
+
+          Compress-Archive `
+            -Path package/* `
+            -DestinationPath ${{ matrix.archive }}
+
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset_name }}
-          path: dist/*
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}
+
+  release:
+    name: Create Release
+    needs: build
+
+    if: startsWith(github.ref, 'refs/tags/')
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Flatten Artifacts
+        run: |
+          mkdir final
+
+          find release-assets -type f \
+            \( -name "*.tar.gz" -o -name "*.zip" \) \
+            -exec cp {} final/ \;
+
+      - name: Generate SHA256 Checksums
+        run: |
+          cd final
+          sha256sum * > sha256sums.txt
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            final/*
