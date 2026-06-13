@@ -1,6 +1,7 @@
 name: Release Desktop App
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
@@ -9,13 +10,26 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-22.04, windows-latest]
+        include:
+          - os: ubuntu-22.04
+            binary: pomoru-desktop
+            archive: pomoru-desktop-linux-x86_64.tar.gz
 
-    runs-on: ${{ matrix.platform }}
+          - os: windows-latest
+            binary: pomoru-desktop.exe
+            archive: pomoru-desktop-windows-x86_64.zip
+
+          - os: macos-latest
+            binary: bundle/macos/Pomoru.app
+            archive: pomoru-desktop-macos-arm64.zip
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,7 +43,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Tauri dependencies (Ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
@@ -38,13 +52,73 @@ jobs:
         run: npm install
         working-directory: ./desktop
 
-      - name: Build and Release Tauri App
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Tauri App
+        run: npm run tauri build
+        working-directory: ./desktop
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir package
+          cp target/release/${{ matrix.binary }} package/
+          cp README.md package/
+          cp LICENSE package/
+          tar -czf ${{ matrix.archive }} -C package .
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir package
+          cp -r target/release/${{ matrix.binary }} package/
+          cp README.md package/
+          cp LICENSE package/
+          cd package
+          zip -r ../${{ matrix.archive }} .
+          cd ..
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path package -Force
+          Copy-Item target/release/${{ matrix.binary }} package/
+          Copy-Item README.md package/
+          Copy-Item LICENSE package/
+          Compress-Archive -Path package/* -DestinationPath ${{ matrix.archive }}
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Pomoru ${{ github.ref_name }}'
-          releaseDraft: true
-          prerelease: false
-          projectPath: './desktop'
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Flatten Artifacts
+        run: |
+          mkdir final
+          find release-assets -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec cp {} final/ \;
+
+      - name: Generate SHA256 Checksums
+        run: |
+          cd final
+          sha256sum * > sha256sums.txt
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            final/*
