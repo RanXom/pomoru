@@ -29,12 +29,12 @@ export default function Header({ timer, activeTaskTitle }: HeaderProps) {
         </span>
       </div>
       <div className="header-time">{formatTime(timer.time_remaining_secs)}</div>
-      {activeTaskTitle && (
+      <div className={`header-task-wrapper ${activeTaskTitle ? "visible" : ""}`}>
         <div className="header-task">
           <span className="task-indicator" />
-          {activeTaskTitle}
+          {activeTaskTitle || "No task"}
         </div>
-      )}
+      </div>
     </div>
   );
 }

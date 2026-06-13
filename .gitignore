@@ -2,3 +2,5 @@
 desktop/node_modules
 desktop/dist
 desktop/.vscode
+desktop/src-tauri/gen
+desktop/src-tauri/target

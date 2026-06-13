@@ -20,25 +20,48 @@ const ASCII_MAP: Record<string, string[]> = {
   ":": ["        ", "   █    ", "        ", "   █    ", "        "],
 };
 
-function formatMonolithicAscii(timeStr: string): string {
-  const lines = ["", "", "", "", ""];
-  for (let i = 0; i < timeStr.length; i++) {
-    const char = timeStr[i];
-    const art = ASCII_MAP[char] || ASCII_MAP[":"];
-    for (let j = 0; j < 5; j++) {
-      lines[j] += art[j];
-      if (i < timeStr.length - 1) {
-        lines[j] += "  ";
-      }
-    }
-  }
-  return lines.join("\n");
+function formatCharAscii(char: string): string {
+  if (!char) return "";
+  const art = ASCII_MAP[char] || ASCII_MAP[":"];
+  return art.join("\n");
 }
 
 function formatTimeStr(secs: number): string {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function AnimatedDigit({ char, mode }: { char: string; mode: string }) {
+  const [current, setCurrent] = useState(char);
+  const [prev, setPrev] = useState("");
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    if (char !== current) {
+      setPrev(current);
+      setCurrent(char);
+      setIsAnimating(true);
+      const timeout = setTimeout(() => setIsAnimating(false), 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [char, current]);
+
+  const ascii = formatCharAscii(current);
+  const prevAscii = formatCharAscii(prev);
+
+  return (
+    <div style={{ position: "relative", overflow: "hidden", display: "inline-block" }}>
+      {isAnimating && prev && (
+        <pre key={`${prev}-prev`} className={`ascii-art-timer ${mode} scroll-out`} style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+          {prevAscii}
+        </pre>
+      )}
+      <pre key={current} className={`ascii-art-timer ${mode} ${isAnimating ? "scroll-in" : ""}`}>
+        {ascii}
+      </pre>
+    </div>
+  );
 }
 
 export default function PixelTimer({ timer, onSetDuration }: PixelTimerProps) {
@@ -53,21 +76,6 @@ export default function PixelTimer({ timer, onSetDuration }: PixelTimerProps) {
   }, [isEditing]);
 
   const timeStr = formatTimeStr(timer.time_remaining_secs);
-  const asciiArt = formatMonolithicAscii(timeStr);
-
-  const [currentAscii, setCurrentAscii] = useState(asciiArt);
-  const [prevAscii, setPrevAscii] = useState("");
-  const [isFading, setIsFading] = useState(false);
-
-  useEffect(() => {
-    if (asciiArt !== currentAscii) {
-      setPrevAscii(currentAscii);
-      setCurrentAscii(asciiArt);
-      setIsFading(true);
-      const timeout = setTimeout(() => setIsFading(false), 300);
-      return () => clearTimeout(timeout);
-    }
-  }, [asciiArt, currentAscii]);
 
   function handleStartEdit() {
     setEditValue(String(Math.floor(timer.time_remaining_secs / 60)));
@@ -121,15 +129,10 @@ export default function PixelTimer({ timer, onSetDuration }: PixelTimerProps) {
         if (e.key === "Enter" || e.key === " ") handleStartEdit();
       }}
     >
-      <div style={{ position: "relative" }}>
-        {isFading && (
-          <pre key={`${prevAscii}-prev`} className={`ascii-art-timer ${timer.mode} fade-out`} style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-            {prevAscii}
-          </pre>
-        )}
-        <pre key={currentAscii} className={`ascii-art-timer ${timer.mode} ${isFading ? "fade-in" : ""}`}>
-          {currentAscii}
-        </pre>
+      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        {timeStr.split("").map((char, index) => (
+          <AnimatedDigit key={index} char={char} mode={timer.mode} />
+        ))}
       </div>
     </div>
   );
