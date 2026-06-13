@@ -1,3 +1,4 @@
 /target
 desktop/node_modules
 desktop/dist
+desktop/.vscode
