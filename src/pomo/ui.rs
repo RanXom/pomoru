@@ -1,4 +1,5 @@
 use crate::pomo::state::{AppScreen, InputMode, Pomo, SessionMode};
+use pomoru_core::timer::format_duration;
 use ratatui::{prelude::*, widgets::*};
 
 pub fn render(f: &mut Frame, app: &mut Pomo) {
@@ -27,7 +28,7 @@ pub fn render(f: &mut Frame, app: &mut Pomo) {
 
             render_timer_screen(f, app, timer_v_center[1]);
 
-            let auto_switch = if app.auto_switch_sessions {
+            let auto_switch = if app.timer.auto_switch_sessions {
                 "a next: auto"
             } else {
                 "a next: manual"
@@ -69,8 +70,7 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
 
     let priority_text = app
         .tasks
-        .iter()
-        .find(|t| !t.is_done)
+        .active_task()
         .map(|t| format!("Current Focus: {}", t.title))
         .unwrap_or_else(|| "No Active Tasks".to_string());
 
@@ -81,7 +81,7 @@ fn render_timer_screen(f: &mut Frame, app: &Pomo, area: Rect) {
         chunks[0],
     );
 
-    let time_str = format_duration(app.time_remaining);
+    let time_str = format_duration(app.timer.time_remaining());
     let big_text = format_monolithic_ascii(&time_str);
     f.render_widget(
         Paragraph::new(big_text)
@@ -131,7 +131,7 @@ fn render_session_dots(f: &mut Frame, app: &Pomo, area: Rect) {
         .iter()
         .enumerate()
         .flat_map(|(i, (mode, label))| {
-            let is_active = app.mode == *mode;
+            let is_active = app.timer.mode == *mode;
             let color = if is_active {
                 app.theme.primary
             } else {
@@ -165,6 +165,7 @@ pub fn render_task_screen(f: &mut Frame, app: &mut Pomo, footer_area: Rect) {
 
     let items: Vec<ListItem> = app
         .tasks
+        .items()
         .iter()
         .map(|t| {
             let symbol = if t.is_done { "󰄲" } else { "󰄱" };
@@ -289,9 +290,4 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
-}
-
-pub fn format_duration(duration: std::time::Duration) -> String {
-    let secs = duration.as_secs();
-    format!("{:02}:{:02}", secs / 60, secs % 60)
 }
