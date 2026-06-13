@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: pomoru
+            asset_name: pomoru-${{ github.ref_name }}-linux-x86_64
+
+          - os: windows-latest
+            artifact_name: pomoru.exe
+            asset_name: pomoru-${{ github.ref_name }}-windows-x86_64.exe
+
+          - os: macos-latest
+            artifact_name: pomoru
+            asset_name: pomoru-${{ github.ref_name }}-macos-aarch64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          mkdir dist
+
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp target/release/${{ matrix.artifact_name }} dist/${{ matrix.asset_name }}
+          else
+            cp target/release/${{ matrix.artifact_name }} dist/${{ matrix.asset_name }}
+          fi
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
