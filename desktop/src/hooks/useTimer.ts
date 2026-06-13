@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { commands, type TimerState, type TickResult } from "../lib/commands";
+import { playWorkDoneSound, playBreakDoneSound } from "../lib/sounds";
 
 export function useTimer() {
   const [timer, setTimer] = useState<TimerState | null>(null);
@@ -15,6 +16,15 @@ export function useTimer() {
     if (timer?.is_running) {
       intervalRef.current = setInterval(async () => {
         const result: TickResult = await commands.tick();
+        
+        if (result.event) {
+          if (result.timer.mode === "work") {
+            playBreakDoneSound(); // Break finished, wake up for work
+          } else {
+            playWorkDoneSound(); // Work finished, relax for break
+          }
+        }
+        
         setTimer(result.timer);
       }, 1000);
     } else {

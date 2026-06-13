@@ -2,11 +2,12 @@
 
 # pomoru
 
-A minimalist Pomodoro TUI with a task list, written in Rust.
+A minimalist Pomodoro TUI (& GUI) with a task list, written in Rust.
 
 ![Rust](https://img.shields.io/badge/Rust-Language-orange?logo=rust)
 ![ratatui](https://img.shields.io/badge/ratatui-TUI-blue)
 ![Tokio](https://img.shields.io/badge/Tokio-Async_Runtime-green)
+![Tauri](https://img.shields.io/badge/Tauri-GUI-purple)
 ![AUR](https://img.shields.io/aur/version/pomoru?logo=arch-linux)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 

@@ -129,7 +129,7 @@ export default function PixelTimer({ timer, onSetDuration }: PixelTimerProps) {
         if (e.key === "Enter" || e.key === " ") handleStartEdit();
       }}
     >
-      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
         {timeStr.split("").map((char, index) => (
           <AnimatedDigit key={index} char={char} mode={timer.mode} />
         ))}
