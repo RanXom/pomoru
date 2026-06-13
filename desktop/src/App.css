@@ -80,6 +80,7 @@
 
 /* Custom Titlebar */
 .titlebar {
+  position: relative;
   height: 40px;
   background: var(--bg);
   display: flex;
@@ -92,7 +93,9 @@
 }
 
 .titlebar-center {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   height: 100%;
   display: flex;
   align-items: center;
