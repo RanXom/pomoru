@@ -190,7 +190,6 @@ impl Pomo {
         }
     }
 
-    /// Sync the ratatui ListState with the core TaskList selection.
     fn sync_task_state(&mut self) {
         self.task_state.select(self.tasks.selected());
     }

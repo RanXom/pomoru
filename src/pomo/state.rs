@@ -1,8 +1,11 @@
 use directories::BaseDirs;
-use notify_rust::Notification;
+use pomoru_core::{
+    task::TaskList,
+    timer::TimerState,
+};
 use ratatui::{style::Color, widgets::ListState};
-use serde::{Deserialize, Serialize};
-use std::{fs, time::Duration};
+use serde::Deserialize;
+use std::fs;
 
 #[derive(Clone, Copy)]
 pub struct Theme {
@@ -65,13 +68,6 @@ impl Default for Theme {
 }
 
 #[derive(PartialEq, Clone, Copy)]
-pub enum SessionMode {
-    Work,
-    ShortBreak,
-    LongBreak,
-}
-
-#[derive(PartialEq, Clone, Copy)]
 pub enum AppScreen {
     Timer,
     Tasks,
@@ -85,48 +81,13 @@ pub enum InputMode {
     TimerEdit,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Config {
-    pub work_time_mins: u64,
-    pub short_break_mins: u64,
-    pub long_break_mins: u64,
-    pub tasks: Vec<Task>,
-
-    #[serde(default = "default_auto_switch")]
-    pub auto_switch_sessions: bool,
-}
-
-fn default_auto_switch() -> bool {
-    true
-}
-
-#[derive(Serialize)]
-pub struct CurrentStatus {
-    pub text: String,
-    pub tooltip: String,
-    pub class: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Task {
-    pub title: String,
-    pub is_done: bool,
-}
-
+/// Thin TUI wrapper around core types.
 pub struct Pomo {
-    pub screen: AppScreen,
-    pub mode: SessionMode,
-    pub input_mode: InputMode,
-    pub work_time: Duration,
-    pub short_break_time: Duration,
-    pub long_break_time: Duration,
-    pub time_remaining: Duration,
-    pub total_duration: Duration,
-    pub is_running: bool,
-    pub auto_switch_sessions: bool,
-    pub break_count: u32,
-    pub tasks: Vec<Task>,
+    pub timer: TimerState,
+    pub tasks: TaskList,
     pub task_state: ListState,
+    pub screen: AppScreen,
+    pub input_mode: InputMode,
     pub input_buffer: String,
     pub should_quit: bool,
     pub theme: Theme,
@@ -134,101 +95,30 @@ pub struct Pomo {
 
 impl Pomo {
     pub fn new() -> Self {
-        let work = Duration::from_secs(25 * 60);
         Self {
-            screen: AppScreen::Timer,
-            mode: SessionMode::Work,
-            input_mode: InputMode::Normal,
-            work_time: work,
-            short_break_time: Duration::from_secs(5 * 60),
-            long_break_time: Duration::from_secs(15 * 60),
-            time_remaining: work,
-            total_duration: work,
-            is_running: false,
-            auto_switch_sessions: true,
-            break_count: 0,
-            tasks: Vec::new(),
+            timer: TimerState::new(),
+            tasks: TaskList::new(),
             task_state: ListState::default(),
+            screen: AppScreen::Timer,
+            input_mode: InputMode::Normal,
             input_buffer: String::new(),
             should_quit: false,
             theme: Theme::default(),
         }
     }
 
-    pub fn tick(&mut self) {
-        if self.is_running && self.time_remaining.as_secs() > 0 {
-            self.time_remaining -= Duration::from_secs(1);
-        } else if self.is_running && self.time_remaining.as_secs() == 0 {
-            let focus_msg = [
-                "I'm tired, boss...",
-                "Congrats! You're him 🗿",
-                "Stand up. Touch grass.",
-                "Mission Passed! Respect+",
-            ];
-            let break_msg = [
-                "Ah shit, here we go again.",
-                "Wake up, Samurai. We have code to burn.",
-                "Lock back in.",
-                "Ref! Do Something! The break's over!",
-            ];
-
-            // Use the remaining duration/break count as a seed for simple 'random' selection
-            let idx = (self.break_count as usize) % 4;
-
-            let (title, msg) = match self.mode {
-                SessionMode::Work => ("Focus Block Complete", focus_msg[idx]),
-                _ => ("Break Over", break_msg[idx]),
-            };
-
-            self.send_notification(title, msg);
-
-            if self.auto_switch_sessions {
-                self.transition_next_session();
-                self.is_running = true;
-            } else {
-                self.is_running = false;
-                self.reset_timer_to_mode();
-            }
-        }
-    }
-
-    fn transition_next_session(&mut self) {
-        match self.mode {
-            SessionMode::Work => {
-                self.break_count += 1;
-                if self.break_count.is_multiple_of(3) {
-                    self.mode = SessionMode::LongBreak;
-                    self.time_remaining = self.long_break_time;
-                    self.total_duration = self.long_break_time;
-                } else {
-                    self.mode = SessionMode::ShortBreak;
-                    self.time_remaining = self.short_break_time;
-                    self.total_duration = self.short_break_time;
-                }
-            }
-            _ => {
-                self.mode = SessionMode::Work;
-                self.time_remaining = self.work_time;
-                self.total_duration = self.work_time;
-            }
-        }
-    }
-
-    pub fn reset_timer_to_mode(&mut self) {
-        self.time_remaining = match self.mode {
-            SessionMode::Work => self.work_time,
-            SessionMode::ShortBreak => self.short_break_time,
-            SessionMode::LongBreak => self.long_break_time,
-        };
-        self.total_duration = self.time_remaining;
-    }
-
-    pub fn send_notification(&self, title: &str, message: &str) {
-        let _ = Notification::new()
-            .summary(title)
-            .body(message)
-            .appname("pomoru")
-            .timeout(5000)
-            .show();
+    pub fn load() -> Self {
+        let config = pomoru_core::config::load();
+        let mut app = Pomo::new();
+        app.timer.work_time_secs = config.work_time_mins * 60;
+        app.timer.short_break_secs = config.short_break_mins * 60;
+        app.timer.long_break_secs = config.long_break_mins * 60;
+        app.timer.auto_switch_sessions = config.auto_switch_sessions;
+        app.timer.reset_timer_to_mode();
+        app.tasks = TaskList::from_tasks(config.tasks);
+        app
     }
 }
+
+// Re-export core types used by other TUI modules.
+pub use pomoru_core::session::SessionMode;
