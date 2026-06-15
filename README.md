@@ -1,6 +1,6 @@
 <div align="center">
 
-# pomoru
+<![pomoru](./assets/)
 
 A minimalist Pomodoro TUI (& GUI) with a task list, written in Rust.
 
