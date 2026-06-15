@@ -2,7 +2,7 @@
 
 <img src="./assets/logo.svg" alt="pomoru" width="40%">
 
-A minimalist Pomodoro TUI (& GUI) with a task list, written in Rust.
+A minimalist Pomodoro TUI with a task list, written in Rust.
 
 ![Rust](https://img.shields.io/badge/Rust-Language-orange?logo=rust)
 ![ratatui](https://img.shields.io/badge/ratatui-TUI-blue)
