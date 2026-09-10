@@ -1,6 +1,6 @@
 <div align="center">
 
-# pomoru
+<img src="./assets/logo.svg" alt="pomoru" width="40%">
 
 A minimalist Pomodoro TUI with a task list, written in Rust.
 
