@@ -82,10 +82,12 @@ impl Pomo {
                 .and_then(|m| m.modified())
                 .ok();
 
-            if current_mtime != self.theme_mtime {
+            if current_mtime.is_some() && current_mtime != self.theme_mtime {
                 let (new_theme, new_mtime) = state::Theme::load_with_mtime();
-                self.theme = new_theme;
-                self.theme_mtime = new_mtime;
+                if new_mtime.is_some() {
+                    self.theme = new_theme;
+                    self.theme_mtime = new_mtime;
+                }
             }
         }
     }
@@ -136,6 +138,7 @@ impl Pomo {
         let mut terminal = Terminal::new(backend)?;
 
         let mut second_tick = tokio::time::interval(Duration::from_secs(1));
+        let mut theme_tick = tokio::time::interval(Duration::from_millis(100));
 
         let _ = self.export_status();
 
@@ -145,8 +148,11 @@ impl Pomo {
             tokio::select! {
                 _ = second_tick.tick() => {
                     self.tick();
-                    self.check_theme_reload();
                     let _ = self.export_status();
+                }
+
+                _ = theme_tick.tick() => {
+                    self.check_theme_reload();
                 }
 
                 // Tighten poll to 16ms (~60fps feel) for input responsiveness
