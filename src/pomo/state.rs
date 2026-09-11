@@ -45,8 +45,8 @@ fn parse_hex_color(hex: &str) -> Option<Color> {
     }
 }
 
-impl Default for Theme {
-    fn default() -> Self {
+impl Theme {
+    pub fn load_with_mtime() -> (Self, Option<std::time::SystemTime>) {
         // Catppuccin Mocha defaults — used when no theme file is present.
         let mut theme = Self {
             primary: Color::Rgb(180, 190, 254),
@@ -57,28 +57,28 @@ impl Default for Theme {
 
         if let Some(base_dirs) = BaseDirs::new() {
             // --- Priority 1: matugen / noctalia v5 rendered colors ---
-            // Noctalia renders `~/.cache/pomoru/colors.json` via a user template.
-            // See `assets/noctalia/` for the template and setup instructions.
             let matugen_path = base_dirs
                 .home_dir()
                 .join(".cache/pomoru/colors.json");
 
-            if let Ok(content) = fs::read_to_string(&matugen_path)
-                && let Ok(colors) = serde_json::from_str::<MatugenColors>(&content)
-            {
-                if let Some(c) = parse_hex_color(&colors.primary) {
-                    theme.primary = c;
+            if let Ok(metadata) = fs::metadata(&matugen_path) {
+                if let Ok(content) = fs::read_to_string(&matugen_path)
+                    && let Ok(colors) = serde_json::from_str::<MatugenColors>(&content)
+                {
+                    if let Some(c) = parse_hex_color(&colors.primary) {
+                        theme.primary = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.on_surface_variant) {
+                        theme.overlay0 = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.surface_container) {
+                        theme.surface0 = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.on_surface) {
+                        theme.text = c;
+                    }
+                    return (theme, metadata.modified().ok());
                 }
-                if let Some(c) = parse_hex_color(&colors.on_surface_variant) {
-                    theme.overlay0 = c;
-                }
-                if let Some(c) = parse_hex_color(&colors.surface_container) {
-                    theme.surface0 = c;
-                }
-                if let Some(c) = parse_hex_color(&colors.on_surface) {
-                    theme.text = c;
-                }
-                return theme;
             }
 
             // --- Priority 2: legacy noctalia colors.json (noctalia < v5) ---
@@ -86,25 +86,34 @@ impl Default for Theme {
                 .home_dir()
                 .join(".config/noctalia/colors.json");
 
-            if let Ok(content) = fs::read_to_string(&legacy_path)
-                && let Ok(colors) = serde_json::from_str::<LegacyNoctaliaColors>(&content)
-            {
-                if let Some(c) = parse_hex_color(&colors.m_primary) {
-                    theme.primary = c;
-                }
-                if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) {
-                    theme.overlay0 = c;
-                }
-                if let Some(c) = parse_hex_color(&colors.m_surface_variant) {
-                    theme.surface0 = c;
-                }
-                if let Some(c) = parse_hex_color(&colors.m_on_surface) {
-                    theme.text = c;
+            if let Ok(metadata) = fs::metadata(&legacy_path) {
+                if let Ok(content) = fs::read_to_string(&legacy_path)
+                    && let Ok(colors) = serde_json::from_str::<LegacyNoctaliaColors>(&content)
+                {
+                    if let Some(c) = parse_hex_color(&colors.m_primary) {
+                        theme.primary = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.m_on_surface_variant) {
+                        theme.overlay0 = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.m_surface_variant) {
+                        theme.surface0 = c;
+                    }
+                    if let Some(c) = parse_hex_color(&colors.m_on_surface) {
+                        theme.text = c;
+                    }
+                    return (theme, metadata.modified().ok());
                 }
             }
         }
 
-        theme
+        (theme, None)
+    }
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Theme::load_with_mtime().0
     }
 }
 
@@ -174,11 +183,13 @@ pub struct Pomo {
     pub input_buffer: String,
     pub should_quit: bool,
     pub theme: Theme,
+    pub theme_mtime: Option<std::time::SystemTime>,
 }
 
 impl Pomo {
     pub fn new() -> Self {
         let work = Duration::from_secs(25 * 60);
+        let (theme, theme_mtime) = Theme::load_with_mtime();
         Self {
             screen: AppScreen::Timer,
             mode: SessionMode::Work,
@@ -195,7 +206,8 @@ impl Pomo {
             task_state: ListState::default(),
             input_buffer: String::new(),
             should_quit: false,
-            theme: Theme::default(),
+            theme,
+            theme_mtime,
         }
     }
 
