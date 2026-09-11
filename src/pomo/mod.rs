@@ -72,6 +72,26 @@ impl Pomo {
         Ok(())
     }
 
+    pub fn check_theme_reload(&mut self) {
+        if let Some(base_dirs) = directories::BaseDirs::new() {
+            let matugen_path = base_dirs.home_dir().join(".cache/pomoru/colors.json");
+            let legacy_path = base_dirs.home_dir().join(".config/noctalia/colors.json");
+
+            let current_mtime = fs::metadata(&matugen_path)
+                .or_else(|_| fs::metadata(&legacy_path))
+                .and_then(|m| m.modified())
+                .ok();
+
+            if current_mtime.is_some() && current_mtime != self.theme_mtime {
+                let (new_theme, new_mtime) = state::Theme::load_with_mtime();
+                if new_mtime.is_some() {
+                    self.theme = new_theme;
+                    self.theme_mtime = new_mtime;
+                }
+            }
+        }
+    }
+
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let config = Config {
             work_time_mins: self.work_time.as_secs() / 60,
@@ -118,6 +138,7 @@ impl Pomo {
         let mut terminal = Terminal::new(backend)?;
 
         let mut second_tick = tokio::time::interval(Duration::from_secs(1));
+        let mut theme_tick = tokio::time::interval(Duration::from_millis(100));
 
         let _ = self.export_status();
 
@@ -128,6 +149,10 @@ impl Pomo {
                 _ = second_tick.tick() => {
                     self.tick();
                     let _ = self.export_status();
+                }
+
+                _ = theme_tick.tick() => {
+                    self.check_theme_reload();
                 }
 
                 // Tighten poll to 16ms (~60fps feel) for input responsiveness

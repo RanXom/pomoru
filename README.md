@@ -32,7 +32,7 @@ A minimalist Pomodoro TUI with a task list, written in Rust.
 
 - Keyboard-only interaction
 - Minimalist interface
-- Dynamic theming system (for Noctalia Shell users)
+- Dynamic theming via [Noctalia](https://noctalia.dev) (v5 matugen templates + legacy `colors.json`)
 - Configuration saved locally
 
 ---
@@ -143,6 +143,88 @@ The previously stated `status.json` can be used in Waybar as follows:
   "tooltip": true
 }
 ```
+
+---
+
+## Theming
+
+Pomoru picks up colors in this priority order:
+
+| Priority | Source | When it applies |
+|----------|--------|-----------------|
+| 1 | `~/.cache/pomoru/colors.json` | Noctalia v5 user template (recommended) |
+| 2 | `~/.config/noctalia/colors.json` | Legacy noctalia v4 format |
+| 3 | Built-in defaults | Catppuccin Mocha palette |
+
+### Noctalia v5 — wiring it up
+
+Noctalia v5 uses its own template engine (matugen-compatible `{{colors.<role>.default.hex}}` tokens). When the wallpaper or palette changes, noctalia re-renders all configured templates automatically. Pomoru ships the template and config snippet needed to hook into this system.
+
+**One-time setup:**
+
+```bash
+# 1. Copy the input template into noctalia's template directory
+mkdir -p ~/.config/noctalia/templates
+cp assets/noctalia/colors-template.json \
+   ~/.config/noctalia/templates/pomoru-colors.json
+
+# 2. Register the user template in noctalia's config
+#    Either append to an existing templates.toml, or create it fresh:
+cat assets/noctalia/templates.toml >> ~/.config/noctalia/templates.toml
+
+# 3. Render immediately (no need to change wallpaper)
+noctalia msg templates-apply
+```
+
+After step 3, `~/.cache/pomoru/colors.json` will exist and pomoru picks it
+up on the next launch.
+
+**What noctalia renders** (`assets/noctalia/colors-template.json`):
+
+```json
+{
+  "primary":            "{{colors.primary.default.hex}}",
+  "on_surface_variant": "{{colors.on_surface_variant.default.hex}}",
+  "surface_container":  "{{colors.surface_container.default.hex}}",
+  "on_surface":         "{{colors.on_surface.default.hex}}"
+}
+```
+
+**The config block** (`assets/noctalia/templates.toml`) noctalia reads:
+
+```toml
+[theme.templates.user.pomoru]
+input_path  = "$XDG_CONFIG_HOME/noctalia/templates/pomoru-colors.json"
+output_path = "$XDG_CACHE_HOME/pomoru/colors.json"
+```
+
+> **Note:** `$XDG_CONFIG_HOME` defaults to `~/.config` and `$XDG_CACHE_HOME`
+> defaults to `~/.cache`. Noctalia v5 expands these automatically.
+
+> **Coming from noctalia v4?** Delete the stale files from `~/.config/noctalia/`:
+> - `colors.json` — not read by v5
+> - `user-templates.toml` — uses matugen's old `[templates.*]` schema; v5 will
+>   warn `templates: unknown section` and ignore it. The v5 schema is
+>   `[theme.templates.user.*]` in any `*.toml` under `~/.config/noctalia/`.
+
+**Validate your config:**
+
+```bash
+noctalia config validate ~/.config/noctalia/templates.toml
+# → ✓ Config is valid
+```
+
+**Re-apply without changing wallpaper:**
+
+```bash
+noctalia msg templates-apply
+```
+
+### Legacy noctalia (v4)
+
+No setup required. If `~/.config/noctalia/colors.json` exists and
+`~/.cache/pomoru/colors.json` does not, pomoru reads the legacy camelCase
+format automatically. Delete it once you've set up the v5 template above.
 
 ---
 
