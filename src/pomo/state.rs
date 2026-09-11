@@ -12,9 +12,21 @@ pub struct Theme {
     pub text: Color,
 }
 
+/// Color format rendered by noctalia v5's matugen template system.
+/// Pomoru reads this from `~/.cache/pomoru/colors.json` when available.
+#[derive(Deserialize)]
+struct MatugenColors {
+    primary: String,
+    on_surface_variant: String,
+    surface_container: String,
+    on_surface: String,
+}
+
+/// Legacy color format from `~/.config/noctalia/colors.json` (noctalia < v5).
+/// Kept for backward compatibility.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct NoctaliaColors {
+struct LegacyNoctaliaColors {
     m_primary: String,
     m_on_surface_variant: String,
     m_surface_variant: String,
@@ -22,10 +34,11 @@ struct NoctaliaColors {
 }
 
 fn parse_hex_color(hex: &str) -> Option<Color> {
-    if hex.len() == 7 && hex.starts_with('#') {
-        let r = u8::from_str_radix(&hex[1..3], 16).ok()?;
-        let g = u8::from_str_radix(&hex[3..5], 16).ok()?;
-        let b = u8::from_str_radix(&hex[5..7], 16).ok()?;
+    let hex = hex.trim_start_matches('#');
+    if hex.len() == 6 {
+        let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
         Some(Color::Rgb(r, g, b))
     } else {
         None
@@ -34,6 +47,7 @@ fn parse_hex_color(hex: &str) -> Option<Color> {
 
 impl Default for Theme {
     fn default() -> Self {
+        // Catppuccin Mocha defaults — used when no theme file is present.
         let mut theme = Self {
             primary: Color::Rgb(180, 190, 254),
             overlay0: Color::Rgb(108, 112, 134),
@@ -42,9 +56,38 @@ impl Default for Theme {
         };
 
         if let Some(base_dirs) = BaseDirs::new() {
-            let path = base_dirs.home_dir().join(".config/noctalia/colors.json");
-            if let Ok(content) = fs::read_to_string(&path)
-                && let Ok(colors) = serde_json::from_str::<NoctaliaColors>(&content)
+            // --- Priority 1: matugen / noctalia v5 rendered colors ---
+            // Noctalia renders `~/.cache/pomoru/colors.json` via a user template.
+            // See `assets/noctalia/` for the template and setup instructions.
+            let matugen_path = base_dirs
+                .home_dir()
+                .join(".cache/pomoru/colors.json");
+
+            if let Ok(content) = fs::read_to_string(&matugen_path)
+                && let Ok(colors) = serde_json::from_str::<MatugenColors>(&content)
+            {
+                if let Some(c) = parse_hex_color(&colors.primary) {
+                    theme.primary = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.on_surface_variant) {
+                    theme.overlay0 = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.surface_container) {
+                    theme.surface0 = c;
+                }
+                if let Some(c) = parse_hex_color(&colors.on_surface) {
+                    theme.text = c;
+                }
+                return theme;
+            }
+
+            // --- Priority 2: legacy noctalia colors.json (noctalia < v5) ---
+            let legacy_path = base_dirs
+                .home_dir()
+                .join(".config/noctalia/colors.json");
+
+            if let Ok(content) = fs::read_to_string(&legacy_path)
+                && let Ok(colors) = serde_json::from_str::<LegacyNoctaliaColors>(&content)
             {
                 if let Some(c) = parse_hex_color(&colors.m_primary) {
                     theme.primary = c;
@@ -60,6 +103,7 @@ impl Default for Theme {
                 }
             }
         }
+
         theme
     }
 }

@@ -1,0 +1,28 @@
+# Noctalia v5 user-template for pomoru
+#
+# This template tells noctalia to render pomoru's theme colors whenever
+# the palette changes, so pomoru always matches your wallpaper-derived scheme.
+#
+# SETUP
+# -----
+# Option A – Drop this file into your noctalia config directory:
+#
+#   cp ~/.config/noctalia/templates.toml ~/.config/noctalia/templates.toml.bak  # optional backup
+#   cat assets/noctalia/templates.toml >> ~/.config/noctalia/templates.toml
+#
+# Option B – Add the block below to ~/.config/noctalia/templates.toml manually.
+#
+# After adding it, noctalia will render the colors on the next palette change,
+# or immediately via:  noctalia theme --render-templates
+
+[theme.templates.user.pomoru]
+input_path  = "$XDG_CONFIG_HOME/noctalia/templates/pomoru-colors.json"
+output_path = "$XDG_CACHE_HOME/pomoru/colors.json"
+
+# TEMPLATE FILE
+# -------------
+# Copy the template to the input_path above:
+#
+#   mkdir -p ~/.config/noctalia/templates
+#   cp assets/noctalia/colors-template.json \
+#      ~/.config/noctalia/templates/pomoru-colors.json

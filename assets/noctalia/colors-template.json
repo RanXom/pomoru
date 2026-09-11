@@ -1,0 +1,6 @@
+{
+  "primary":            "{{colors.primary.default.hex}}",
+  "on_surface_variant": "{{colors.on_surface_variant.default.hex}}",
+  "surface_container":  "{{colors.surface_container.default.hex}}",
+  "on_surface":         "{{colors.on_surface.default.hex}}"
+}
