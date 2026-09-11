@@ -32,7 +32,7 @@ A minimalist Pomodoro TUI with a task list, written in Rust.
 
 - Keyboard-only interaction
 - Minimalist interface
-- Dynamic theming system (for Noctalia Shell users)
+- Dynamic theming via [Noctalia](https://noctalia.dev) (v5 matugen templates + legacy `colors.json`)
 - Configuration saved locally
 
 ---
@@ -143,6 +143,48 @@ The previously stated `status.json` can be used in Waybar as follows:
   "tooltip": true
 }
 ```
+
+---
+
+## Theming
+
+Pomoru picks up colors in this priority order:
+
+| Priority | Source | When it applies |
+|----------|--------|-----------------|
+| 1 | `~/.cache/pomoru/colors.json` | Noctalia v5 matugen template (recommended) |
+| 2 | `~/.config/noctalia/colors.json` | Legacy noctalia `< v5` format |
+| 3 | Built-in defaults | Catppuccin Mocha palette |
+
+### Noctalia v5 (matugen) — recommended
+
+Copy the template and add the user-template entry so noctalia re-renders pomoru's colors whenever your palette changes:
+
+```bash
+# 1. Copy the template file
+mkdir -p ~/.config/noctalia/templates
+cp assets/noctalia/colors-template.json \
+   ~/.config/noctalia/templates/pomoru-colors.json
+
+# 2. Append the template entry to your noctalia templates config
+cat assets/noctalia/templates.toml >> ~/.config/noctalia/templates.toml
+
+# 3. Trigger an immediate render (or just change your wallpaper)
+noctalia theme --render-templates
+```
+
+The template entry noctalia needs is:
+
+```toml
+[theme.templates.user.pomoru]
+input_path  = "$XDG_CONFIG_HOME/noctalia/templates/pomoru-colors.json"
+output_path = "$XDG_CACHE_HOME/pomoru/colors.json"
+```
+
+### Legacy noctalia (`< v5`)
+
+No setup required. If `~/.config/noctalia/colors.json` exists and the
+matugen cache file does not, pomoru reads colors from it automatically.
 
 ---
 
