@@ -282,20 +282,3 @@ cargo install --path .
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ranxom/pomoru&type=date&legend=top-left" />
  </picture>
 </a>
-
----
-
-## Built with
-
-- Rust
-- ratatui
-- crossterm
-- tokio
-- notify-rust
-- serde + toml
-
----
-
-## License
-
-MIT
